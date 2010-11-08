@@ -37,7 +37,7 @@
 -(void) drawRightFullPage;
 -(void) drawCurlPage;
 -(void) drawCurlingPageWithVector:(CGPoint)v start:(float)start_rad delta:(float)delta_rad startTan:(float)start_tan endTan:(float)end_tan xRef:(int)x_ref yRef:(int)y_ref;
--(void) drawCurlingPageWithXline:(float)x1 X2:(float)x2 xRef:(int)x_ref yRef:(int)y_ref;
+-(void) drawCurlingPageWithXline:(float)x1 X2:(float)x2 endTan:(float)end_tan xRef:(int)x_ref yRef:(int)y_ref;
 -(void) drawLackedPageWithXLine:(float)x xRef:(int)x_ref yRef:(int)y_ref;
 -(void) drawLackedPageWithVector:(CGPoint)v A:(float)a B:(float)b xRef:(int)x_ref yRef:(int)y_ref;
 - (void) curlPageWithVector:(CGPoint)point;
