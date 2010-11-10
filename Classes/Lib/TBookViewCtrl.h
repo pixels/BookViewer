@@ -60,4 +60,6 @@ enum {
 -(void) drawLackedPageWithVector:(CGPoint)v A:(float)a B:(float)b xRef:(int)x_ref yRef:(int)y_ref;
 - (void) curlPageWithVector:(CGPoint)point;
 
+GLfloat* getFlippedVertices(GLfloat* vertices, int n);
+
 @end

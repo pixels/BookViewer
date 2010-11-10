@@ -203,7 +203,7 @@
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // ライトを当ててみる
-  // glEnable(GL_LIGHTING);
+  //glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
   glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
   glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, lightDirection);
@@ -853,13 +853,18 @@
   int tex_page;
   glEnable(GL_CULL_FACE); 
   for (int i = 0; i < 2; i++ ) {
+    glMatrixMode(GL_TEXTURE);
+    glLoadIdentity();
     if ( i == 0 ) {
       glCullFace(GL_FRONT);
       // glFrontFace(GL_CCW);
+      glScalef(1.0, 1.0, 1.0);
     } else {
       glCullFace(GL_BACK);
+      glScalef(-1.0, 1.0, 1.0);
       // glFrontFace(GL_CW);
     }
+    glMatrixMode(GL_MODELVIEW);
     if ( x_ref > 0 ) {
       if ( i == 0 ) tex_page = 3;
       else  tex_page = 4;
@@ -1250,13 +1255,18 @@
 
   glEnable(GL_CULL_FACE); 
   for (int i = 0; i < 2; i++ ) {
+    glMatrixMode(GL_TEXTURE);
+    glLoadIdentity();
     if ( i == 0 ) {
       glCullFace(GL_FRONT);
-      // glFrontFace(GL_CW);
+      // glFrontFace(GL_CCW);
+      glScalef(1.0, 1.0, 1.0);
     } else {
       glCullFace(GL_BACK);
-      // glFrontFace(GL_CCW);
+      glScalef(-1.0, 1.0, 1.0);
+      // glFrontFace(GL_CW);
     }
+    glMatrixMode(GL_MODELVIEW);
 
     if ( x_ref > 0 ) {
       if ( i == 0 ) tex_page = 3;
@@ -1285,11 +1295,11 @@
     glBindTexture(GL_TEXTURE_2D, texture[tex_page]);
 
     glDrawArrays(GL_TRIANGLES, 0, 3 * active_counts);
-  }
 
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  glDisableClientState(GL_COLOR_ARRAY);
-  glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+  }
 
   glDisable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
 }
@@ -1322,6 +1332,18 @@
 
   return norms;
 }
+
+GLfloat * getFlippedVertices(GLfloat* vertices, int n) {
+  GLfloat norms[9 * n];
+  GLfloat ax, ay, az, bx, by, bz;
+
+  for (int i = 0; i < 9 * n; i += 3) {
+    vertices[i] = 1 - vertices[i];
+  }
+
+  return vertices;
+}
+
 
 -(void) drawLackedPageWithXLine:(float)x xRef:(int)x_ref yRef:(int)y_ref {
   GLfloat vertices[] = {
@@ -1475,13 +1497,18 @@
 
   glEnable(GL_CULL_FACE); 
   for (int i = 0; i < 2; i++ ) {
+    glMatrixMode(GL_TEXTURE);
+    glLoadIdentity();
     if ( i == 0 ) {
       glCullFace(GL_FRONT);
-      // glFrontFace(GL_CW);
+      // glFrontFace(GL_CCW);
+      glScalef(1.0, 1.0, 1.0);
     } else {
       glCullFace(GL_BACK);
-      // glFrontFace(GL_CCW);
+      glScalef(-1.0, 1.0, 1.0);
+      // glFrontFace(GL_CW);
     }
+    glMatrixMode(GL_MODELVIEW);
 
     if ( x_ref > 0 ) {
       if ( i == 0 ) tex_page = 3;
@@ -1510,11 +1537,11 @@
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
-  }
 
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  glDisableClientState(GL_COLOR_ARRAY);
-  glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+  }
   glDisable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
 }
 
@@ -1561,13 +1588,18 @@
 
   glEnable(GL_CULL_FACE); 
   for (int i = 0; i < 2; i++ ) {
+    glMatrixMode(GL_TEXTURE);
+    glLoadIdentity();
     if ( i == 0 ) {
       glCullFace(GL_FRONT);
-      // glFrontFace(GL_CW);
+      // glFrontFace(GL_CCW);
+      glScalef(1.0, 1.0, 1.0);
     } else {
       glCullFace(GL_BACK);
-      // glFrontFace(GL_CCW);
+      glScalef(-1.0, 1.0, 1.0);
+      // glFrontFace(GL_CW);
     }
+    glMatrixMode(GL_MODELVIEW);
 
     if ( x_ref > 0 ) {
       if ( i == 0 ) tex_page = 3;
