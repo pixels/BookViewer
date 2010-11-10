@@ -9,7 +9,6 @@
 #import "BookViewerViewController.h"
 #import "TBookViewDefinition.h"
 #import "TBookViewCtrl.h"
-#import "RootView.h"
 
 @implementation BookViewerViewController
 
@@ -33,8 +32,6 @@
 // Implement viewDidLoad to do additional setup after loading the view, typically from a nib.
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.view = [[RootView alloc] initWithFrame:CGRectMake(0, 0, WINDOW_W, WINDOW_H)];
-    [self.view setDelegate:self];
 
     ctrl = [[TBookViewCtrl alloc] init];
     [self.view addSubview:ctrl.view];
@@ -59,38 +56,6 @@
 
 - (void)dealloc {
     [super dealloc];
-}
-
-/* TouchesDelegate */
-
-- (void)view:(UIView*)view touchesBegan:(NSSet*)touches withEvent:(UIEvent*)event {
-  NSLog(@"delegate touchesBegan");
-  for (UITouch *touch in touches) {
-    startPoint = [touch locationInView:self.view];
-    break;
-  }
-}
-
-- (void)view:(UIView*)view touchesMoved:(NSSet*)touches withEvent:(UIEvent*)event {
-  NSLog(@"delegate touchesMoved");
-  for (UITouch *touch in touches) {
-    endPoint = [touch locationInView:self.view];
-    [ctrl curlPageWithVector:CGPointMake(endPoint.x - startPoint.x, endPoint.y - startPoint.y)];
-    break;
-  }
-}
-
-- (void)view:(UIView*)view touchesEnded:(NSSet*)touches withEvent:(UIEvent*)event {
-  NSLog(@"delegate touchesEnded");
-  for (UITouch *touch in touches) {
-    endPoint = [touch locationInView:self.view];
-    [ctrl curlPageWithVector:CGPointMake(0, 0)];
-    break;
-  }
-}
-
-- (void)view:(UIView*)view touchesCancelled:(NSSet*)touches withEvent:(UIEvent*)event {
-  NSLog(@"delegate touchesCancelled");
 }
 
 @end

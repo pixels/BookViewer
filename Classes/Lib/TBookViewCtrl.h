@@ -12,16 +12,28 @@
 #import "TPageLoader.h"
 #import "MathUtil.h"
 
+enum {
+  DIRECTION_LEFT,
+  DIRECTION_RIGHT
+};
 
 @interface TBookViewCtrl : UIViewController {
   TPageCurlView* page_curl_view;
-  UIImageView* main_pages[2];
+  UIView* main_pages[6];
+  UIView* left_view;
+  UIView* right_view;
+
   TPageLoader* loader;
   BOOL animating;
   BOOL displayLinkSupported;
   int animationFrameInterval;
 
-  GLuint texture[2];
+  int page_num;
+
+  int direction;
+  CGPoint startPoint, endPoint;
+
+  GLuint texture[6];
   GLuint tex;
 
   CGPoint pre_vector;
@@ -32,6 +44,12 @@
 
 @property (readonly, nonatomic, getter=isAnimating) BOOL animating;
 
+-(void)loadTextures;
+-(void) setMainPages;
+-(void) changeRightPage;
+-(void) returnRightPage;
+-(void) changeLeftPage;
+-(void) returnLeftPage;
 -(void) drawPage;
 -(void) drawLeftFullPage;
 -(void) drawRightFullPage;

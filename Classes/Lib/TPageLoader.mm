@@ -13,11 +13,8 @@
 @implementation TPageLoader
 
 -(UIImageView*) getImageViewWithNumber:(int)page_num {
-  if ( page_num == 0 ) {
-    return [[testView alloc] initWithFrame:CGRectMake(0,0,512,512) Str:@"左"];
-  } else {
-    return [[testView alloc] initWithFrame:CGRectMake(0,0,512,512) Str:@"右"];
-  }
+  UIImageView* view = [[testView alloc] initWithFrame:CGRectMake(0,0,512,512) Str:[NSString stringWithFormat:@"%d", page_num]];
+  return view;
 }
 
 @end

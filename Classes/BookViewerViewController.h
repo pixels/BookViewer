@@ -10,7 +10,6 @@
 
 @interface BookViewerViewController : UIViewController {
   UIViewController* ctrl;
-  CGPoint startPoint, endPoint;
 }
 
 @end

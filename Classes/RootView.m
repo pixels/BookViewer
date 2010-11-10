@@ -32,22 +32,18 @@
 /* touch */
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-	NSLog(@"touchesBegan");
 	[delegate view:self touchesBegan:touches withEvent:event];
 }
 
 - (void)touchesMoved: (NSSet *)touches withEvent:(UIEvent *)event {
-	NSLog(@"touchesMoved");
 	[delegate view:self touchesMoved:touches withEvent:event];
 }
 
 - (void)touchesEnded: (NSSet *)touches withEvent:(UIEvent *)event {
-	NSLog(@"touchesEnded");
 	[delegate view:self touchesEnded:touches withEvent:event];
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
-	NSLog(@"touchesCancelled");
 	[delegate view:self touchesCancelled:touches withEvent:event];
 }
 

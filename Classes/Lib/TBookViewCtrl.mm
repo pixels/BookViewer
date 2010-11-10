@@ -8,6 +8,7 @@
 
 #import "TBookViewCtrl.h"
 #import "graphicUtil.h"
+#import "RootView.h"
 
 @interface TBookViewCtrl ()
 @property (nonatomic, retain) EAGLContext *context;
@@ -36,37 +37,106 @@
 
 // Implement viewDidLoad to do additional setup after loading the view, typically from a nib.
 - (void)viewDidLoad {
-    [super viewDidLoad];
-    [self.view setBackgroundColor:[UIColor redColor]];
-    self.view.frame = CGRectMake(0, 0, WINDOW_W, WINDOW_H);
+  page_num = 0;
 
-    loader = [[TPageLoader alloc] init];
-    pre_vector = CGPointMake(0, 0);
-    vector = CGPointMake(0, 0);
-    base_point = CGPointMake(0, 0);
-    pivot_point = CGPointMake(0, 0);
+  direction = DIRECTION_RIGHT;
 
-    for (int i = 0; i < 2; i++) {
-      main_pages[i] = [loader getImageViewWithNumber:i];
-      main_pages[i].frame = CGRectMake(WINDOW_W / 2 * i, 0, WINDOW_W / 2, WINDOW_H);
-      //[self.view addSubview:main_pages[i]];
-    }
+  [super viewDidLoad];
+  //[self.view setBackgroundColor:[UIColor redColor]];
+  self.view = [[RootView alloc] initWithFrame:CGRectMake(0, 0, WINDOW_W, WINDOW_H)];
+  [(RootView*)self.view setDelegate:self];
+  self.view.backgroundColor = [UIColor colorWithWhite:0.0f alpha:0.0f];
+  self.view.frame = CGRectMake(0, 0, WINDOW_W, WINDOW_H);
 
-    [self initPageCurlView];
+  loader = [[TPageLoader alloc] init];
+  pre_vector = CGPointMake(0, 0);
+  vector = CGPointMake(0, 0);
+  base_point = CGPointMake(0, 0);
+  pivot_point = CGPointMake(0, 0);
 
-    [self loadTexture];
+  for (int i = 0; i < 6; i++) {
+    main_pages[i] = [loader getImageViewWithNumber:i];
+    main_pages[i].frame = CGRectMake(0, 0, self.view.frame.size.width / 2, self.view.frame.size.height);
+  }
 
-    [self drawFrame];
+  left_view = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width / 2, self.view.frame.size.height)];
+  [self.view addSubview:left_view];
+
+  right_view = [[UIView alloc] initWithFrame:CGRectMake(self.view.frame.size.width / 2, 0, self.view.frame.size.width / 2, self.view.frame.size.height)];
+  [self.view addSubview:right_view];
+
+  [self initPageCurlView];
+
+  [self setMainPages];
+
+  [self loadTextures];
+
+  [self drawFrame];
 }
 
--(void) loadTexture {
-  for ( int i = 0; i < 2; i++ ) texture[i] = loadTextureFromUIView(main_pages[i]);
+-(void) setMainPages {
+  for (int i = 0; i < 6; i ++) {
+    [main_pages[i] removeFromSuperview];
+  }
+  if ( direction == DIRECTION_RIGHT ) {
+      [left_view addSubview:main_pages[2]];
+      [right_view addSubview:main_pages[3]];
+  } else {
+      [right_view addSubview:main_pages[2]];
+      [left_view addSubview:main_pages[3]];
+  }
+}
+
+-(void) changeRightPage {
+  if ( direction == DIRECTION_RIGHT ) {
+    [main_pages[3] removeFromSuperview];
+    [right_view addSubview:main_pages[5]];
+  } else {
+    [main_pages[2] removeFromSuperview];
+    [right_view addSubview:main_pages[0]];
+  }
+}
+
+- (void) returnRightPage {
+  if ( direction == DIRECTION_RIGHT ) {
+    [main_pages[5] removeFromSuperview];
+    [right_view addSubview:main_pages[3]];
+  } else {
+    [main_pages[0] removeFromSuperview];
+    [right_view addSubview:main_pages[2]];
+  }
+}
+
+-(void) changeLeftPage {
+  if ( direction == DIRECTION_RIGHT ) {
+    [main_pages[2] removeFromSuperview];
+    [left_view addSubview:main_pages[0]];
+  } else {
+    [main_pages[3] removeFromSuperview];
+    [left_view addSubview:main_pages[5]];
+  }
+}
+
+- (void) returnLeftPage {
+  if ( direction == DIRECTION_RIGHT ) {
+    [main_pages[0] removeFromSuperview];
+    [left_view addSubview:main_pages[2]];
+  } else {
+    [main_pages[5] removeFromSuperview];
+    [left_view addSubview:main_pages[3]];
+  }
+}
+
+
+-(void) loadTextures {
+  for ( int i = 0; i < 6; i++ ) texture[i] = loadTextureFromUIView(main_pages[i]);
 }
 
 -(void) initPageCurlView {
   page_curl_view = [[TPageCurlView alloc] initWithFrame:CGRectMake(0, 0, WINDOW_W, WINDOW_H)];
+  page_curl_view.backgroundColor = [UIColor colorWithWhite:0.0f alpha:0.0f];
   EAGLContext *aContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
-  
+
   if (!aContext)
     NSLog(@"Failed to create ES context");
   else if (![EAGLContext setCurrentContext:aContext])
@@ -98,104 +168,189 @@
 - (void) setPrimaryPoints {
   pivot_point = CGPointMake(0.0f, 1.5f);
   base_point = CGPointMake(2.0f, 1.5f);
-  /*
-  if (vector.y < 0 ) {
-    pivot_point = CGPointMake(0.0f, 1.5f);
-    if (vector.x < 0 ) {
-      base_point = CGPointMake(2.0f, 1.5f);
-    } else {
-      base_point = CGPointMake(-2.0f, 1.5f);
-    }
-  } else {
-    pivot_point = CGPointMake(0.0f, -1.5f);
-    if (vector.x < 0 ) {
-      base_point = CGPointMake(2.0f, -1.5f);
-    } else {
-      base_point = CGPointMake(-2.0f, -1.5f);
-    }
-  }
-  */
 }
 
 - (void)drawFrame
 {
   [(TPageCurlView *)page_curl_view setFramebuffer];
 
-  const GLfloat lightPos[] = {
-    2.0f, 1.0f, 1.0f, 0.0f
+  GLfloat lightPos[] = {
+    0.0f, 0.0f, 3.0f, 0.0f
   };
 
-  const GLfloat lightColor[] = {
-    1.0f, 1.0f, 1.0f, 1.0f
+  GLfloat lightDirection[] = {
+    0.0f, 0.0f, -1.0f
   };
 
-  const GLfloat lightAmbient[] = {
-    0.0f, 0.0f, 0.0f, 1.0f
+  GLfloat lightColor[] = {
+    1.0f, 0.0f, 0.0f, 1.0f
   };
 
-  const GLfloat diffuse[] = {
-    0.7f, 0.7f, 0.7f, 1.0f
+  GLfloat lightAmbient[] = {
+    0.5f, 0.5f, 0.5f, 1.0f
   };
 
-  const GLfloat ambient[] = {
-    0.3f, 0.3f, 0.3f, 1.0f
+  GLfloat diffuse[] = {
+    1.0f, 0.0f, 0.0f, 1.0f
+  };
+
+  GLfloat ambient[] = {
+    0.5f, 0.5f, 0.5f, 1.0f
   };
 
   glViewport(0, 0, self.view.frame.size.width, self.view.frame.size.height);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  glOrthof(-2.0f, 2.0f, -1.5f, 1.5f, -1.5f, 1.5f);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-
-  glClearColor(1.0f, 0.0f, 0.0f, 0.5f);
+  glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  [self drawPage];
-
   // ライトを当ててみる
-  glEnable(GL_LIGHTING);
+  // glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
   glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+  glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, lightDirection);
   glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor);
   glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
   glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
   glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
-  glDisable(GL_LIGHT0);
-  glDisable(GL_LIGHTING);
 
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glOrthof(-2.0f, 2.0f, -1.5f, 1.5f, -10.0f, 10.0f);
+  //glFrustumf(-2.0f, 2.0f, -1.5f, 1.5f, -10.0f, 10.0f);
+
+  glMatrixMode(GL_MODELVIEW);
+  glTranslatef(0.0, 0.0, -7.0);
+  glPushMatrix();
+
+  glLoadIdentity();
+  // int rad = (int)(vector.x * 50);
+  // glRotatef(rad, 0, 1, 0);
+  // [self drawBox];
+  [self drawPage];
+  glPopMatrix();
+
+  // glDisable(GL_LIGHT0);
+  // glDisable(GL_LIGHTING);
   // drawTexture(1.0, 1.0, 0.5, 0.5, texture[0], 255, 255, 255, 255);
 
   if([(TPageCurlView *)page_curl_view presentFramebuffer]) {
+#ifdef DEBUG
     NSLog(@"success to present");
+#endif
   }
 }
 
+-(void) drawBox {
+  GLfloat vertices[] = {
+    -0.5, -0.5,  -0.5,
+    +0.5, -0.5,  -0.5,
+    -0.5, +0.5,  -0.5,
+
+    -0.5, +0.5,  -0.5,
+    +0.5, -0.5,  -0.5,
+    +0.5, +0.5,  -0.5,
+
+    -0.5, -0.5,  +0.5,
+    +0.5, -0.5,  +0.5,
+    -0.5, +0.5,  +0.5,
+
+    -0.5, +0.5,  +0.5,
+    +0.5, -0.5,  +0.5,
+    +0.5, +0.5,  +0.5,
+  };
+
+  GLubyte colors[] = {
+    155, 155, 155, 155,
+    155, 155, 155, 155,
+    155, 155, 155, 155,
+
+    155, 155, 155, 155,
+    155, 155, 155, 155,
+    155, 155, 155, 155,
+
+    155, 155, 155, 155,
+    155, 155, 155, 155,
+    155, 155, 155, 155,
+
+    155, 155, 155, 155,
+    155, 155, 155, 155,
+    155, 155, 155, 155,
+  };
+
+  GLfloat norms[] = {
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+  };
+
+
+  // GLfloat* norms = (GLfloat*)[self getNormVectorsFromVertices:vertices Num:12];
+
+  // glEnable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
+
+  glVertexPointer(3, GL_FLOAT, 0, vertices);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
+  glEnableClientState(GL_COLOR_ARRAY);
+
+  glNormalPointer(GL_FLOAT, 0, norms);
+  glEnableClientState(GL_NORMAL_ARRAY);
+
+  // glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
+  // glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+  glDrawArrays(GL_TRIANGLES, 0, 12);
+
+  // glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_COLOR_ARRAY);
+  glDisableClientState(GL_VERTEX_ARRAY);
+  glDisable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
+
+}
 - (void) drawPage {
   if (vector.x > 0) {
-    [self drawRightFullPage];
     [self drawCurlPage];
   } else if (vector.x < 0){
-    [self drawLeftFullPage];
     [self drawCurlPage];
-  } else {
-    [self drawRightFullPage];
-    [self drawLeftFullPage];
   }   
 }
 
 -(void) drawLeftFullPage {
-  const GLfloat verticesLeft[] = {
-    -2.0f, 1.5f, 0.0f,
+  GLfloat verticesLeft[] = {
     -2.0f, -1.5f, 0.0f,
+    -2.0f, 1.5f, 0.0f,
     0.0f, -1.5f, 0.0f,
 
-    -2.0f, 1.5f, 0.0f,
     0.0f, -1.5f, 0.0f,
+    -2.0f, 1.5f, 0.0f,
     0.0f, 1.5f, 0.0f
   };
 
-  const GLubyte colors[] = {
+  GLfloat norms[] = {
+    0.0f, 0.0f, 1.0f,
+    0.0f, 0.0f, 1.0f,
+    0.0f, 0.0f, 1.0f,
+
+    0.0f, 0.0f, 1.0f,
+    0.0f, 0.0f, 1.0f,
+    0.0f, 0.0f, 1.0f,
+  };
+
+  GLubyte colors[] = {
     255, 255, 255, 255,
     255, 255, 255, 255,
     255, 255, 255, 255,
@@ -205,17 +360,16 @@
     255, 255, 255, 255
   };
 
-  const GLfloat texCoords[] = {
-    0.0, 0.0,
+  GLfloat texCoords[] = {
     0.0, 0.0+1.0,
+    0.0, 0.0,
     0.0+1.0, 0.0+1.0,
 
-    0.0, 0.0,
     0.0+1.0, 0.0+1.0,
+    0.0, 0.0,
     0.0+1.0, 0.0
   };
 
-  glEnable(GL_DEPTH_TEST);
   glEnable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
 
   glVertexPointer(3, GL_FLOAT, 0, verticesLeft);
@@ -223,10 +377,13 @@
   glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
   glEnableClientState(GL_COLOR_ARRAY);
 
+  glNormalPointer(GL_FLOAT, 0, norms);
+  glEnableClientState(GL_NORMAL_ARRAY);
+
   glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-  glBindTexture(GL_TEXTURE_2D, texture[0]);
+  glBindTexture(GL_TEXTURE_2D, texture[1]);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -236,21 +393,30 @@
   glDisableClientState(GL_COLOR_ARRAY);
   glDisableClientState(GL_VERTEX_ARRAY);
   glDisable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
-  glDisable(GL_DEPTH_TEST);
 }
 
 -(void) drawRightFullPage {
-  const GLfloat verticesRight[] = {
-    0.0f, 1.5f, 0.0f,
+  GLfloat verticesRight[] = {
     0.0f, -1.5f, 0.0f,
+    0.0f, 1.5f, 0.0f,
     2.0f, -1.5f, 0.0f,
 
-    0.0f, 1.5f, 0.0f,
     2.0f, -1.5f, 0.0f,
+    0.0f, 1.5f, 0.0f,
     2.0f, 1.5f, 0.0f
   };
 
-  const GLubyte colors[] = {
+  GLfloat norms[] = {
+    0.0f, 0.0f, 1.0f,
+    0.0f, 0.0f, 1.0f,
+    0.0f, 0.0f, 1.0f,
+
+    0.0f, 0.0f, 1.0f,
+    0.0f, 0.0f, 1.0f,
+    0.0f, 0.0f, 1.0f,
+  };
+
+  GLubyte colors[] = {
     255, 255, 255, 255,
     255, 255, 255, 255,
     255, 255, 255, 255,
@@ -260,17 +426,16 @@
     255, 255, 255, 255
   };
 
-  const GLfloat texCoords[] = {
-    0.0, 0.0,
+  GLfloat texCoords[] = {
     0.0, 0.0+1.0,
+    0.0, 0.0,
     0.0+1.0, 0.0+1.0,
 
-    0.0, 0.0,
     0.0+1.0, 0.0+1.0,
+    0.0, 0.0,
     0.0+1.0, 0.0
   };
 
-  glEnable(GL_DEPTH_TEST);
   glEnable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
 
   glVertexPointer(3, GL_FLOAT, 0, verticesRight);
@@ -278,10 +443,13 @@
   glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
   glEnableClientState(GL_COLOR_ARRAY);
 
+  glNormalPointer(GL_FLOAT, 0, norms);
+  glEnableClientState(GL_NORMAL_ARRAY);
+
   glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-  glBindTexture(GL_TEXTURE_2D, texture[1]);
+  glBindTexture(GL_TEXTURE_2D, texture[2]);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -370,7 +538,6 @@
     float far_x = ((alpha - gamma) - sqrt(pow(alpha - gamma, 2) + 4.0f * ((alpha * gamma) - tau))) / 4;
     //float far_x = ((alpha - gamma) - sqrt(pow(alpha - gamma, 2) + 4.0f * ((alpha * gamma) - tau))) / 2;
     float far_y = a * far_x + b; 
-    NSLog(@"far_x %f", far_x);
     if (far_x < 0) {
       far_x = pivot_point.x;
       far_y = pivot_point.y;
@@ -408,7 +575,6 @@
     // TODO : 説明
     float delta_tan = ((a3 - a2) / (1 + a3 * a2));
     float delta_rad = atan(delta_tan);
-    NSLog(@"before delta_rad : %f", fabs(delta_rad));
     float main_rad = atan(a2);
 
     [self drawCurlingPageWithVector:CGPointMake(far_x, far_y) start:main_rad delta:delta_rad startTan:a2 endTan:a3 xRef:x_ref yRef:y_ref];
@@ -422,10 +588,11 @@
     // [self drawCurlingPageWithVector:CGPointMake(far_x, far_y) start:main_rad delta:delta_rad startTan:a2 endTan:a3 xRef:x_ref yRef:y_ref];
 
   }
+  vector.x *= x_ref;
+  vector.y *= y_ref;
 }
 
 -(void) drawCurlingPageWithXline:(float)x1 X2:(float)x2 xRef:(int)x_ref yRef:(int)y_ref {
-  NSLog(@"draw curling");
   // 円錐の底面(高さrとした場合の)を求める
   float theta1 = M_PI / (float)PAGE_CURL_SPLIT;
   float mini_len = (x2 - x1) / (float)PAGE_CURL_SPLIT;
@@ -444,6 +611,7 @@
   }
 
   GLfloat vertices[9 * 4 * PAGE_CURL_SPLIT];
+  GLfloat* norms;
   GLubyte colors[6 * 4 * PAGE_CURL_SPLIT];
   GLfloat tex_coords[6 * 4 * PAGE_CURL_SPLIT];
 
@@ -492,13 +660,21 @@
     now_v2_y = -1.5;
     now_v2_z = oval[i][2];
 
-    vertices[vertex_index++] = x_ref * now_v1_x;
-    vertices[vertex_index++] = y_ref * now_v1_y;
-    vertices[vertex_index++] = now_v1_z;
+    if (x_ref * y_ref < 0) {
+      vertices[vertex_index++] = x_ref * now_v1_x;
+      vertices[vertex_index++] = y_ref * now_v1_y;
+      vertices[vertex_index++] = now_v1_z;
+    }
 
     vertices[vertex_index++] = x_ref * pre_v1_x;
     vertices[vertex_index++] = y_ref * pre_v1_y;
     vertices[vertex_index++] = pre_v1_z;
+
+    if (x_ref * y_ref > 0) {
+      vertices[vertex_index++] = x_ref * now_v1_x;
+      vertices[vertex_index++] = y_ref * now_v1_y;
+      vertices[vertex_index++] = now_v1_z;
+    }
 
     vertices[vertex_index++] = x_ref * pre_v2_x;
     vertices[vertex_index++] = y_ref * pre_v2_y;
@@ -522,35 +698,49 @@
 
     active_counts++;
 
+    if (x_ref < 0) {
       vertices[vertex_index++] = x_ref * now_v1_x;
       vertices[vertex_index++] = y_ref * now_v1_y;
       vertices[vertex_index++] = now_v1_z;
+    }
 
-      vertices[vertex_index++] = x_ref * pre_v2_x;
-      vertices[vertex_index++] = y_ref * pre_v2_y;
-      vertices[vertex_index++] = pre_v2_z;
+    vertices[vertex_index++] = x_ref * pre_v2_x;
+    vertices[vertex_index++] = y_ref * pre_v2_y;
+    vertices[vertex_index++] = pre_v2_z;
 
-      vertices[vertex_index++] = x_ref * now_v2_x;
-      vertices[vertex_index++] = y_ref * now_v2_y;
-      vertices[vertex_index++] = now_v2_z;
+    if (x_ref > 0) {
+      vertices[vertex_index++] = x_ref * now_v1_x;
+      vertices[vertex_index++] = y_ref * now_v1_y;
+      vertices[vertex_index++] = now_v1_z;
+    }
 
+    vertices[vertex_index++] = x_ref * now_v2_x;
+    vertices[vertex_index++] = y_ref * now_v2_y;
+    vertices[vertex_index++] = now_v2_z;
+
+    if (x_ref < 0) {
       tex_coords[tex_index++] = 0.5 + x_ref * (now_c1_x/ 2.0 - 0.5);
       tex_coords[tex_index++] = (1.5 - y_ref * now_c1_y) / 3.0;
+    }
 
-      tex_coords[tex_index++] = 0.5 + x_ref * (pre_c2_x / 2.0 - 0.5);
-      tex_coords[tex_index++] = (1.5 - y_ref * pre_c2_y) / 3.0;
+    tex_coords[tex_index++] = 0.5 + x_ref * (pre_c2_x / 2.0 - 0.5);
+    tex_coords[tex_index++] = (1.5 - y_ref * pre_c2_y) / 3.0;
 
-      tex_coords[tex_index++] = 0.5 + x_ref * (now_c2_x / 2.0 - 0.5);
-      tex_coords[tex_index++] = (1.5 - y_ref * now_c2_y) / 3.0;
+    if (x_ref > 0) {
+      tex_coords[tex_index++] = 0.5 + x_ref * (now_c1_x/ 2.0 - 0.5);
+      tex_coords[tex_index++] = (1.5 - y_ref * now_c1_y) / 3.0;
+    }
+    tex_coords[tex_index++] = 0.5 + x_ref * (now_c2_x / 2.0 - 0.5);
+    tex_coords[tex_index++] = (1.5 - y_ref * now_c2_y) / 3.0;
 
-      colors[color_index++] = 255; colors[color_index++] = 255;
-      colors[color_index++] = 255; colors[color_index++] = alpha;
-      colors[color_index++] = 255; colors[color_index++] = 255;
-      colors[color_index++] = 255; colors[color_index++] = alpha;
-      colors[color_index++] = 255; colors[color_index++] = 255;
-      colors[color_index++] = 255; colors[color_index++] = alpha;
+    colors[color_index++] = 255; colors[color_index++] = 255;
+    colors[color_index++] = 255; colors[color_index++] = alpha;
+    colors[color_index++] = 255; colors[color_index++] = 255;
+    colors[color_index++] = 255; colors[color_index++] = alpha;
+    colors[color_index++] = 255; colors[color_index++] = 255;
+    colors[color_index++] = 255; colors[color_index++] = alpha;
 
-      active_counts++;
+    active_counts++;
 
     pre_v1_x = now_v1_x;
     pre_v1_y = now_v1_y;
@@ -568,24 +758,38 @@
 
   }
 
-  if ( true ) {
-  vertices[vertex_index++] = x_ref * pre_v1_x;
-  vertices[vertex_index++] = y_ref * pre_v1_y;
-  vertices[vertex_index++] = pre_v1_z;
+  if (x_ref < 0) {
+    vertices[vertex_index++] = x_ref * pre_v1_x;
+    vertices[vertex_index++] = y_ref * pre_v1_y;
+    vertices[vertex_index++] = pre_v1_z;
+  }
 
   vertices[vertex_index++] = x_ref * pre_v2_x;
   vertices[vertex_index++] = y_ref * pre_v2_y;
   vertices[vertex_index++] = pre_v2_z;
 
+  if (x_ref > 0) {
+    vertices[vertex_index++] = x_ref * pre_v1_x;
+    vertices[vertex_index++] = y_ref * pre_v1_y;
+    vertices[vertex_index++] = pre_v1_z;
+  }
+
   vertices[vertex_index++] = x_ref * (pre_v1_x - (2.0 - x2));
   vertices[vertex_index++] = y_ref * 1.5;
   vertices[vertex_index++] = pre_v1_z;
 
-  tex_coords[tex_index++] = 0.5 + x_ref * (pre_c1_x / 2.0 - 0.5);
-  tex_coords[tex_index++] = (1.5 - y_ref * pre_c1_y) / 3.0;
+  if (x_ref < 0) {
+    tex_coords[tex_index++] = 0.5 + x_ref * (pre_c1_x / 2.0 - 0.5);
+    tex_coords[tex_index++] = (1.5 - y_ref * pre_c1_y) / 3.0;
+  }
 
   tex_coords[tex_index++] = 0.5 + x_ref * (pre_c2_x / 2.0 - 0.5);
   tex_coords[tex_index++] = (1.5 - y_ref * pre_c2_y) / 3.0;
+
+  if (x_ref > 0) {
+    tex_coords[tex_index++] = 0.5 + x_ref * (pre_c1_x / 2.0 - 0.5);
+    tex_coords[tex_index++] = (1.5 - y_ref * pre_c1_y) / 3.0;
+  }
 
   tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
   tex_coords[tex_index++] = 0.5 - y_ref * 0.5;
@@ -599,70 +803,99 @@
 
   active_counts++;
 
-  vertices[vertex_index++] = x_ref * (pre_v1_x - (2.0 - x2));
-  vertices[vertex_index++] = y_ref * -1.5;
-  vertices[vertex_index++] = pre_v1_z;
+  if (x_ref < 0) {
+    vertices[vertex_index++] = x_ref * (pre_v1_x - (2.0 - x2));
+    vertices[vertex_index++] = y_ref * -1.5;
+    vertices[vertex_index++] = pre_v1_z;
+  }
 
   vertices[vertex_index++] = x_ref * pre_v2_x;
   vertices[vertex_index++] = y_ref * pre_v2_y;
   vertices[vertex_index++] = pre_v2_z;
 
+  if (x_ref > 0) {
+    vertices[vertex_index++] = x_ref * (pre_v1_x - (2.0 - x2));
+    vertices[vertex_index++] = y_ref * -1.5;
+    vertices[vertex_index++] = pre_v1_z;
+  }
+
   vertices[vertex_index++] = x_ref * (pre_v1_x - (2.0 - x2));
   vertices[vertex_index++] = y_ref * 1.5;
   vertices[vertex_index++] = pre_v1_z;
 
-  tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
-  tex_coords[tex_index++] = 0.5 + y_ref * 0.5;
+  if (x_ref < 0) {
+    tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
+    tex_coords[tex_index++] = 0.5 + y_ref * 0.5;
+  }
 
   tex_coords[tex_index++] = 0.5 + x_ref * (pre_c2_x / 2.0 - 0.5);
   tex_coords[tex_index++] = (1.5 - y_ref * pre_c2_y) / 3.0;
 
+  if (x_ref > 0) {
+    tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
+    tex_coords[tex_index++] = 0.5 + y_ref * 0.5;
+  }
+
   tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
   tex_coords[tex_index++] = 0.5 - y_ref * 0.5;
 
-    colors[color_index++] = 255; colors[color_index++] = 255;
-    colors[color_index++] = 255; colors[color_index++] = alpha;
-    colors[color_index++] = 255; colors[color_index++] = 255;
-    colors[color_index++] = 255; colors[color_index++] = alpha;
-    colors[color_index++] = 255; colors[color_index++] = 255;
-    colors[color_index++] = 255; colors[color_index++] = alpha;
+  colors[color_index++] = 255; colors[color_index++] = 255;
+  colors[color_index++] = 255; colors[color_index++] = alpha;
+  colors[color_index++] = 255; colors[color_index++] = 255;
+  colors[color_index++] = 255; colors[color_index++] = alpha;
+  colors[color_index++] = 255; colors[color_index++] = 255;
+  colors[color_index++] = 255; colors[color_index++] = alpha;
 
-    active_counts++;
+  active_counts++;
 
-  }
+  norms = (GLfloat*)[self getNormVectorsFromVertices:vertices Num:3 * active_counts];
+
   int tex_page;
-  if ( x_ref > 0 ) {
-    tex_page = 1;
-  } else {
-    tex_page = 0;
+  glEnable(GL_CULL_FACE); 
+  for (int i = 0; i < 2; i++ ) {
+    if ( i == 0 ) {
+      glCullFace(GL_FRONT);
+      // glFrontFace(GL_CCW);
+    } else {
+      glCullFace(GL_BACK);
+      // glFrontFace(GL_CW);
+    }
+    if ( x_ref > 0 ) {
+      if ( i == 0 ) tex_page = 3;
+      else  tex_page = 4;
+    } else {
+      if ( i == 0 ) tex_page = 2;
+      else  tex_page = 1;
+    }
+
+    // POINT
+    glEnable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
+    glVertexPointer(3, GL_FLOAT, 0, vertices);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
+    glEnableClientState(GL_COLOR_ARRAY);
+
+    glNormalPointer(GL_FLOAT, 0, norms);
+    glEnableClientState(GL_NORMAL_ARRAY);
+
+    glTexCoordPointer(2, GL_FLOAT, 0, tex_coords);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+    glBindTexture(GL_TEXTURE_2D, texture[tex_page]);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3 * active_counts);
   }
-  // POINT
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
-  glVertexPointer(3, GL_FLOAT, 0, vertices);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
-  glEnableClientState(GL_COLOR_ARRAY);
-
-  glTexCoordPointer(2, GL_FLOAT, 0, tex_coords);
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-
-  glBindTexture(GL_TEXTURE_2D, texture[tex_page]);
-
-  glDrawArrays(GL_TRIANGLES, 0, 3 * active_counts);
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);
   glDisableClientState(GL_VERTEX_ARRAY);
 
   glDisable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
-  glDisable(GL_DEPTH_TEST);
 }
 -(void) drawCurlingPageWithVector:(CGPoint)v start:(float)start_rad delta:(float)delta_rad startTan:(float)start_tan endTan:(float)end_tan xRef:(int)x_ref yRef:(int)y_ref {
-  NSLog(@"draw curling");
   // 円錐の底面(高さrとした場合の)を求める
   float r = 1;
   float theta1 = M_PI / (float)PAGE_CURL_SPLIT;
@@ -720,6 +953,7 @@
   // GLfloat texCoords[6 * 2 * BOMB_COUNT];
   //
   GLfloat vertices[9 * 4 * PAGE_CURL_SPLIT];
+  GLfloat* norms;
   GLubyte colors[6 * 4 * PAGE_CURL_SPLIT];
   GLfloat tex_coords[6 * 4 * PAGE_CURL_SPLIT];
 
@@ -787,23 +1021,38 @@
     now_v2_y = oval[i][1] * l2 + v.y;
     now_v2_z = oval[i][2] * l2;
 
-    vertices[vertex_index++] = x_ref * now_v1_x;
-    vertices[vertex_index++] = y_ref * now_v1_y;
-    vertices[vertex_index++] = now_v1_z;
+    if (x_ref * y_ref < 0) {
+      vertices[vertex_index++] = x_ref * now_v1_x;
+      vertices[vertex_index++] = y_ref * now_v1_y;
+      vertices[vertex_index++] = now_v1_z;
+    }
 
     vertices[vertex_index++] = x_ref * pre_v1_x;
     vertices[vertex_index++] = y_ref * pre_v1_y;
     vertices[vertex_index++] = pre_v1_z;
 
+    if (x_ref * y_ref > 0) {
+      vertices[vertex_index++] = x_ref * now_v1_x;
+      vertices[vertex_index++] = y_ref * now_v1_y;
+      vertices[vertex_index++] = now_v1_z;
+    }
+
     vertices[vertex_index++] = x_ref * pre_v2_x;
     vertices[vertex_index++] = y_ref * pre_v2_y;
     vertices[vertex_index++] = pre_v2_z;
 
-    tex_coords[tex_index++] = 0.5 + x_ref * (((now_c1_x + v.x)/ 2.0) - 0.5);
-    tex_coords[tex_index++] = (1.5 - y_ref * (now_c1_y + v.y)) / 3.0;
+    if (x_ref * y_ref < 0) {
+      tex_coords[tex_index++] = 0.5 + x_ref * (((now_c1_x + v.x)/ 2.0) - 0.5);
+      tex_coords[tex_index++] = (1.5 - y_ref * (now_c1_y + v.y)) / 3.0;
+    }
 
     tex_coords[tex_index++] = 0.5 + x_ref * ((pre_c1_x + v.x) / 2.0 - 0.5);
     tex_coords[tex_index++] = (1.5 - y_ref * (pre_c1_y + v.y)) / 3.0;
+
+    if (x_ref * y_ref > 0) {
+      tex_coords[tex_index++] = 0.5 + x_ref * (((now_c1_x + v.x)/ 2.0) - 0.5);
+      tex_coords[tex_index++] = (1.5 - y_ref * (now_c1_y + v.y)) / 3.0;
+    }
 
     tex_coords[tex_index++] = 0.5 + x_ref * ((pre_c2_x + v.x) / 2.0 - 0.5);
     tex_coords[tex_index++] = (1.5 - y_ref * (pre_c2_y + v.y)) / 3.0;
@@ -818,24 +1067,38 @@
     active_counts++;
 
     if ( now_v1_x != now_v2_x ) {
-      vertices[vertex_index++] = x_ref * now_v1_x;
-      vertices[vertex_index++] = y_ref * now_v1_y;
-      vertices[vertex_index++] = now_v1_z;
+      if (x_ref * y_ref < 0) {
+	vertices[vertex_index++] = x_ref * now_v1_x;
+	vertices[vertex_index++] = y_ref * now_v1_y;
+	vertices[vertex_index++] = now_v1_z;
+      }
 
       vertices[vertex_index++] = x_ref * pre_v2_x;
       vertices[vertex_index++] = y_ref * pre_v2_y;
       vertices[vertex_index++] = pre_v2_z;
 
+      if (x_ref * y_ref > 0) {
+	vertices[vertex_index++] = x_ref * now_v1_x;
+	vertices[vertex_index++] = y_ref * now_v1_y;
+	vertices[vertex_index++] = now_v1_z;
+      }
+
       vertices[vertex_index++] = x_ref * now_v2_x;
       vertices[vertex_index++] = y_ref * now_v2_y;
       vertices[vertex_index++] = now_v2_z;
 
-      tex_coords[tex_index++] = 0.5 + x_ref * ((now_c1_x + v.x)/ 2.0 - 0.5);
-      tex_coords[tex_index++] = (1.5 - y_ref * (now_c1_y + v.y)) / 3.0;
+      if (x_ref * y_ref < 0) {
+	tex_coords[tex_index++] = 0.5 + x_ref * ((now_c1_x + v.x)/ 2.0 - 0.5);
+	tex_coords[tex_index++] = (1.5 - y_ref * (now_c1_y + v.y)) / 3.0;
+      }
 
       tex_coords[tex_index++] = 0.5 + x_ref * ((pre_c2_x + v.x) / 2.0 - 0.5);
       tex_coords[tex_index++] = (1.5 - y_ref * (pre_c2_y + v.y)) / 3.0;
 
+      if (x_ref * y_ref > 0) {
+	tex_coords[tex_index++] = 0.5 + x_ref * ((now_c1_x + v.x)/ 2.0 - 0.5);
+	tex_coords[tex_index++] = (1.5 - y_ref * (now_c1_y + v.y)) / 3.0;
+      }
       tex_coords[tex_index++] = 0.5 + x_ref * ((now_c2_x + v.x) / 2.0 - 0.5);
       tex_coords[tex_index++] = (1.5 - y_ref * (now_c2_y + v.y)) / 3.0;
 
@@ -880,23 +1143,38 @@
 
   CGPoint v_1 = CGPointMake(cross_l * sqrt(1.0 / (pow(1.0/start_tan, 2) + 1.0)), (cross_l * sqrt(1.0 - (1.0 / (pow(1.0/start_tan, 2) + 1.0)))));
 
-  vertices[vertex_index++] = x_ref * pre_v1_x;
-  vertices[vertex_index++] = y_ref * pre_v1_y;
-  vertices[vertex_index++] = pre_v1_z;
+  if (x_ref * y_ref < 0) {
+    vertices[vertex_index++] = x_ref * pre_v1_x;
+    vertices[vertex_index++] = y_ref * pre_v1_y;
+    vertices[vertex_index++] = pre_v1_z;
+  }
 
   vertices[vertex_index++] = x_ref * pre_v2_x;
   vertices[vertex_index++] = y_ref * pre_v2_y;
   vertices[vertex_index++] = pre_v2_z;
 
+  if (x_ref * y_ref > 0) {
+    vertices[vertex_index++] = x_ref * pre_v1_x;
+    vertices[vertex_index++] = y_ref * pre_v1_y;
+    vertices[vertex_index++] = pre_v1_z;
+  }
+
   vertices[vertex_index++] = x_ref * (((1 - t) * pre_v1_x + t * pre_v2_x) - v_1.x);
   vertices[vertex_index++] = y_ref*(((1 - t) * pre_v1_y + t * pre_v2_y) - v_1.y);
   vertices[vertex_index++] = pre_v1_z;
 
-  tex_coords[tex_index++] = 0.5 + x_ref * ((pre_c1_x + v.x) / 2.0 - 0.5);
-  tex_coords[tex_index++] = (1.5 - y_ref * (pre_c1_y + v.y)) / 3.0;
+  if (x_ref * y_ref < 0) {
+    tex_coords[tex_index++] = 0.5 + x_ref * ((pre_c1_x + v.x) / 2.0 - 0.5);
+    tex_coords[tex_index++] = (1.5 - y_ref * (pre_c1_y + v.y)) / 3.0;
+  }
 
   tex_coords[tex_index++] = 0.5 + x_ref * ((pre_c2_x + v.x) / 2.0 - 0.5);
   tex_coords[tex_index++] = (1.5 - y_ref * (pre_c2_y + v.y)) / 3.0;
+
+  if (x_ref * y_ref > 0) {
+    tex_coords[tex_index++] = 0.5 + x_ref * ((pre_c1_x + v.x) / 2.0 - 0.5);
+    tex_coords[tex_index++] = (1.5 - y_ref * (pre_c1_y + v.y)) / 3.0;
+  }
 
   tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
   tex_coords[tex_index++] = 0.5 - y_ref * 0.5;
@@ -915,23 +1193,38 @@
     norm_vec = vecDivide(norm_vec, vecNorm(norm_vec));
     CGPoint new_vec = vecMul(norm_vec, (2.0 - (-1.5 - b) / a));
 
-    vertices[vertex_index++] = x_ref * (((1 - t) * pre_v1_x + t * pre_v2_x) - v_1.x);
-    vertices[vertex_index++] = y_ref * (((1 - t) * pre_v1_y + t * pre_v2_y) - v_1.y);
-    vertices[vertex_index++] = pre_v1_z;
+    if (x_ref * y_ref < 0) {
+      vertices[vertex_index++] = x_ref * (((1 - t) * pre_v1_x + t * pre_v2_x) - v_1.x);
+      vertices[vertex_index++] = y_ref * (((1 - t) * pre_v1_y + t * pre_v2_y) - v_1.y);
+      vertices[vertex_index++] = pre_v1_z;
+    }
 
     vertices[vertex_index++] = x_ref * pre_v2_x;
     vertices[vertex_index++] = y_ref * pre_v2_y;
     vertices[vertex_index++] = pre_v2_z;
 
+    if (x_ref * y_ref > 0) {
+      vertices[vertex_index++] = x_ref * (((1 - t) * pre_v1_x + t * pre_v2_x) - v_1.x);
+      vertices[vertex_index++] = y_ref * (((1 - t) * pre_v1_y + t * pre_v2_y) - v_1.y);
+      vertices[vertex_index++] = pre_v1_z;
+    }
+
     vertices[vertex_index++] = x_ref * (new_vec.x + pre_v2_x);
     vertices[vertex_index++] = y_ref * (new_vec.y + pre_v2_y);
     vertices[vertex_index++] = pre_v2_z;
 
-    tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
-    tex_coords[tex_index++] = 0.5 - y_ref * 0.5;
+    if (x_ref * y_ref < 0) {
+      tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
+      tex_coords[tex_index++] = 0.5 - y_ref * 0.5;
+    }
 
     tex_coords[tex_index++] = 0.5 + x_ref * ((pre_c2_x + v.x) / 2.0 - 0.5);
     tex_coords[tex_index++] = (1.5 - y_ref * (pre_c2_y + v.y)) / 3.0;
+
+    if (x_ref * y_ref > 0) {
+      tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
+      tex_coords[tex_index++] = 0.5 - y_ref * 0.5;
+    }
 
     tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
     tex_coords[tex_index++] = 0.5 + y_ref * 0.5;
@@ -944,9 +1237,9 @@
     colors[color_index++] = 255; colors[color_index++] = alpha;
 
     active_counts++;
-
-
   }
+
+  norms = (GLfloat*)[self getNormVectorsFromVertices:vertices Num:3 * active_counts];
 
   int tex_page;
   if ( x_ref > 0 ) {
@@ -954,34 +1247,84 @@
   } else {
     tex_page = 0;
   }
-  // POINT
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
-  glVertexPointer(3, GL_FLOAT, 0, vertices);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
-  glEnableClientState(GL_COLOR_ARRAY);
 
-  glTexCoordPointer(2, GL_FLOAT, 0, tex_coords);
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+  glEnable(GL_CULL_FACE); 
+  for (int i = 0; i < 2; i++ ) {
+    if ( i == 0 ) {
+      glCullFace(GL_FRONT);
+      // glFrontFace(GL_CW);
+    } else {
+      glCullFace(GL_BACK);
+      // glFrontFace(GL_CCW);
+    }
 
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    if ( x_ref > 0 ) {
+      if ( i == 0 ) tex_page = 3;
+      else  tex_page = 4;
+    } else {
+      if ( i == 0 ) tex_page = 2;
+      else  tex_page = 1;
+    }
 
-  glBindTexture(GL_TEXTURE_2D, texture[tex_page]);
+    // POINT
+    glEnable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
+    glVertexPointer(3, GL_FLOAT, 0, vertices);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
+    glEnableClientState(GL_COLOR_ARRAY);
 
-  glDrawArrays(GL_TRIANGLES, 0, 3 * active_counts);
+    glNormalPointer(GL_FLOAT, 0, norms);
+    glEnableClientState(GL_NORMAL_ARRAY);
+
+    glTexCoordPointer(2, GL_FLOAT, 0, tex_coords);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+    glBindTexture(GL_TEXTURE_2D, texture[tex_page]);
+
+    glDrawArrays(GL_TRIANGLES, 0, 3 * active_counts);
+  }
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);
   glDisableClientState(GL_VERTEX_ARRAY);
 
   glDisable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
-  glDisable(GL_DEPTH_TEST);
+}
+
+-(GLfloat *) getNormVectorsFromVertices:(GLfloat*)vertices Num:(int)n {
+  GLfloat norms[9 * n];
+  GLfloat ax, ay, az, bx, by, bz;
+
+  for (int i = 0; i < 9 * n; i += 9) {
+    bx = vertices[i + 3] - vertices[i];
+    by = vertices[i + 4] - vertices[i + 1];
+    bz = vertices[i + 5] - vertices[i + 2];
+
+    ax = vertices[i + 6] - vertices[i];
+    ay = vertices[i + 7] - vertices[i + 1];
+    az = vertices[i + 8] - vertices[i + 2];
+
+    norms[i] = ((ay * bz) - (by * az));
+    norms[i + 1] = ((ax * bz) - (bx * az));
+    norms[i + 2] = ((ax * by) - (bx * ay));
+
+    norms[i + 3] = norms[i];
+    norms[i + 4] = norms[i + 1];
+    norms[i + 5] = norms[i + 2];
+
+    norms[i + 6] = norms[i];
+    norms[i + 7] = norms[i + 1];
+    norms[i + 8] = norms[i + 2];
+  }
+
+  return norms;
 }
 
 -(void) drawLackedPageWithXLine:(float)x xRef:(int)x_ref yRef:(int)y_ref {
-  const GLfloat vertices[] = {
+  GLfloat vertices[] = {
     0.0f, 1.5f, 0,
     0.0f, -1.5f, 0,
     x_ref * x, 1.5f, 0,
@@ -991,10 +1334,32 @@
     x_ref * x, -1.5f, 0,
   };
 
-  [self drawLackedPageWidthThreeTriangels:vertices Xref:x_ref];
+  if (x_ref > 0) {
+    GLfloat tmp;
+    for (int i = 0; i < 2 * 9; i+=9) {
+      for (int j = 0; j < 3; j++) {
+	tmp = vertices[i+j];
+	vertices[i+j] = vertices[i+j+3];
+	vertices[i+j+3] = tmp;
+      }
+    }
+  }
+
+  // GLfloat* norms = [self getNormVectorsFromVertices:vertices Num:2];
+  GLfloat norms[] = {
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+    0.0, 0.0, 1.0,
+  };
+
+
+  [self drawLackedPageWidthThreeTriangels:vertices Norms:norms Xref:x_ref];
 }
 -(void) drawLackedPageWithVector:(CGPoint)v A:(float)a B:(float)b xRef:(int)x_ref yRef:(int)y_ref {
-  NSLog(@"here is");
   int cross_type;
 
   a *= y_ref * x_ref;
@@ -1004,7 +1369,7 @@
   else cross_type = 1;
 
   if ( cross_type == 1 ) {
-    const GLfloat vertices[] = {
+    GLfloat vertices[] = {
       0.0f, 1.5f, 0,
       0.0f, -1.5f, 0,
       (1.5f - b) / a, 1.5f, 0,
@@ -1018,9 +1383,34 @@
       2.0f, -1.5f, 0,
     };
 
-    [self drawLackedPageWidthThreeTriangels:vertices Xref:x_ref];
+    if (x_ref > 0) {
+      GLfloat tmp;
+      for (int i = 0; i < 3 * 9; i+=9) {
+	for (int j = 0; j < 3; j++) {
+	  tmp = vertices[i+j];
+	  vertices[i+j] = vertices[i+j+3];
+	  vertices[i+j+3] = tmp;
+	}
+      }
+    }
+
+    GLfloat norms[] = {
+      0.0, 0.0, 1.0,
+      0.0, 0.0, 1.0,
+      0.0, 0.0, 1.0,
+
+      0.0, 0.0, 1.0,
+      0.0, 0.0, 1.0,
+      0.0, 0.0, 1.0,
+
+      0.0, 0.0, 1.0,
+      0.0, 0.0, 1.0,
+      0.0, 0.0, 1.0,
+    };
+
+    [self drawLackedPageWidthThreeTriangels:vertices Norms:norms Xref:x_ref];
   } else if ( cross_type == 2 ) {
-    const GLfloat vertices[] = {
+    GLfloat vertices[] = {
       0.0f, 1.5f, 0,
       0.0f, -1.5f, 0,
       (-1.5f - b) / a, -1.5f, 0,
@@ -1030,12 +1420,28 @@
       (1.5f - b) / a, 1.5f, 0
     };
 
-    [self drawLackedPageWidthTwoTriangels:vertices Xref:x_ref];
+    if (x_ref > 0) {
+      GLfloat tmp;
+      for (int i = 0; i < 2 * 9; i+=9) {
+	for (int j = 0; j < 3; j++) {
+	  tmp = vertices[i+j];
+	  vertices[i+j] = vertices[i+j+3];
+	  vertices[i+j+3] = tmp;
+	}
+      }
+    }
+
+    GLfloat* norms = (GLfloat*)[self getNormVectorsFromVertices:vertices Num:2];
+
+    [self drawLackedPageWidthTwoTriangels:vertices Norms:norms Xref:x_ref];
   }
 }
 
--(void) drawLackedPageWidthTwoTriangels:(GLfloat *)vertices Xref:(int)x_ref {
-  const GLubyte colors[] = {
+-(void) drawLackedPageWidthTwoTriangels:(GLfloat *)vertices Norms:(GLfloat *)norms Xref:(int)x_ref {
+  for (int i = 0 ; i < 18; i++ ) {
+    float f = norms[i];
+  }
+  GLubyte colors[] = {
     255, 255, 255, 255,
     255, 255, 255, 255,
     255, 255, 255, 255,
@@ -1045,7 +1451,7 @@
     255, 255, 255, 255
   };
 
-  const GLfloat texCoords[] = {
+  GLfloat texCoords[] = {
     (vertices[0] / 2.0), ((1.5 - vertices[1]) / 3.0),
     (vertices[3] / 2.0), ((1.5 - vertices[4]) / 3.0),
     (vertices[6] / 2.0), ((1.5 - vertices[7]) / 3.0),
@@ -1066,32 +1472,54 @@
   } else {
     tex_page = 0;
   }
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
 
-  glVertexPointer(3, GL_FLOAT, 0, vertices);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
-  glEnableClientState(GL_COLOR_ARRAY);
+  glEnable(GL_CULL_FACE); 
+  for (int i = 0; i < 2; i++ ) {
+    if ( i == 0 ) {
+      glCullFace(GL_FRONT);
+      // glFrontFace(GL_CW);
+    } else {
+      glCullFace(GL_BACK);
+      // glFrontFace(GL_CCW);
+    }
 
-  glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    if ( x_ref > 0 ) {
+      if ( i == 0 ) tex_page = 3;
+      else  tex_page = 4;
+    } else {
+      if ( i == 0 ) tex_page = 2;
+      else  tex_page = 1;
+    }
 
-  glBindTexture(GL_TEXTURE_2D, texture[tex_page]);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-  glDrawArrays(GL_TRIANGLES, 0, 6);
+    glEnable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
+
+    glVertexPointer(3, GL_FLOAT, 0, vertices);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
+    glEnableClientState(GL_COLOR_ARRAY);
+
+    glNormalPointer(GL_FLOAT, 0, norms);
+    glEnableClientState(GL_NORMAL_ARRAY);
+
+    glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+    glBindTexture(GL_TEXTURE_2D, texture[tex_page]);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+  }
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);
   glDisableClientState(GL_VERTEX_ARRAY);
   glDisable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
-  glDisable(GL_DEPTH_TEST);
 }
 
--(void) drawLackedPageWidthThreeTriangels:(GLfloat *)vertices Xref:(int)x_ref {
-  const GLubyte colors[] = {
+-(void) drawLackedPageWidthThreeTriangels:(GLfloat *)vertices Norms:(GLfloat*)norms Xref:(int)x_ref {
+  GLubyte colors[] = {
     255, 255, 255, 255,
     255, 255, 255, 255,
     255, 255, 255, 255,
@@ -1105,7 +1533,7 @@
     255, 255, 255, 255
   };
 
-  const GLfloat texCoords[] = {
+  GLfloat texCoords[] = {
     (vertices[0] / 2.0), ((1.5 - vertices[1]) / 3.0),
     (vertices[3] / 2.0), ((1.5 - vertices[4]) / 3.0),
     (vertices[6] / 2.0), ((1.5 - vertices[7]) / 3.0),
@@ -1130,36 +1558,77 @@
   } else {
     tex_page = 0;
   }
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
 
-  glVertexPointer(3, GL_FLOAT, 0, vertices);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
-  glEnableClientState(GL_COLOR_ARRAY);
+  glEnable(GL_CULL_FACE); 
+  for (int i = 0; i < 2; i++ ) {
+    if ( i == 0 ) {
+      glCullFace(GL_FRONT);
+      // glFrontFace(GL_CW);
+    } else {
+      glCullFace(GL_BACK);
+      // glFrontFace(GL_CCW);
+    }
 
-  glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    if ( x_ref > 0 ) {
+      if ( i == 0 ) tex_page = 3;
+      else tex_page = 4;
+    } else {
+      if ( i == 0 ) tex_page = 2;
+      else  tex_page = 1;
+    }
 
-  glBindTexture(GL_TEXTURE_2D, texture[tex_page]);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glEnable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
 
-  glDrawArrays(GL_TRIANGLES, 0, 9);
+    glVertexPointer(3, GL_FLOAT, 0, vertices);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
+    glEnableClientState(GL_COLOR_ARRAY);
+
+    glNormalPointer(GL_FLOAT, 0, norms);
+    glEnableClientState(GL_NORMAL_ARRAY);
+
+    glTexCoordPointer(2, GL_FLOAT, 0, texCoords);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+    glBindTexture(GL_TEXTURE_2D, texture[tex_page]);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    glDrawArrays(GL_TRIANGLES, 0, 9);
+  }
 
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);
   glDisableClientState(GL_VERTEX_ARRAY);
   glDisable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
-  glDisable(GL_DEPTH_TEST);
 }
 
 - (void) curlPageWithVector:(CGPoint)point {
-  NSLog(@"curl page %d %d", point.x, point.y);
   pre_vector = vector;
   vector = CGPointMake(2.0f * point.x / (WINDOW_W / 2), -1.5 * point.y / (WINDOW_H / 2));
+
   [self setPrimaryPoints];
   [self drawFrame];
+
+  if ( vector.x == 0.0 ) {
+    if ( pre_vector.x < 0.0 ) [self returnRightPage];
+    else [self returnLeftPage];
+  } else if (pre_vector.x * vector.x < 0 ) {
+    // [self loadTextures];
+    if ( pre_vector.x < 0 ) {
+      [self returnRightPage];
+      [self changeLeftPage];
+    } else {
+      [self returnLeftPage];
+      [self changeRightPage];
+    }
+  } else if ( pre_vector.x == 0.0 ) {
+    if ( vector.x < 0.0 ) {
+      [self changeRightPage];
+    } else {
+      [self changeLeftPage];
+    }
+  }
 }
 
 /*
@@ -1186,6 +1655,40 @@ return (interfaceOrientation == UIInterfaceOrientationPortrait);
 
 - (void)dealloc {
   [super dealloc];
+  [loader dealloc];
+  [page_curl_view dealloc];
+}
+
+/* TouchesDelegate */
+
+- (void)view:(UIView*)view touchesBegan:(NSSet*)touches withEvent:(UIEvent*)event {
+  for (UITouch *touch in touches) {
+    startPoint = [touch locationInView:self.view];
+    break;
+  }
+}
+
+- (void)view:(UIView*)view touchesMoved:(NSSet*)touches withEvent:(UIEvent*)event {
+  for (UITouch *touch in touches) {
+    endPoint = [touch locationInView:self.view];
+    [self curlPageWithVector:CGPointMake(endPoint.x - startPoint.x, endPoint.y - startPoint.y)];
+    break;
+  }
+}
+
+- (void)view:(UIView*)view touchesEnded:(NSSet*)touches withEvent:(UIEvent*)event {
+  for (UITouch *touch in touches) {
+    endPoint = [touch locationInView:self.view];
+    [self curlPageWithVector:CGPointMake(0.0, 0.0)];
+    break;
+  }
+}
+
+- (void)view:(UIView*)view touchesCancelled:(NSSet*)touches withEvent:(UIEvent*)event {
+  for (UITouch *touch in touches) {
+    [self curlPageWithVector:CGPointMake(0.0, 0.0)];
+    break;
+  }
 }
 
 

@@ -33,6 +33,35 @@ void drawSquare(float x, float y, float width, int red, int green, int blue, int
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
+void drawBox() {
+  const GLfloat vertices[] = {
+    -0.5, -0.5,  0.0,
+    -0.5,  0.5,  0.0,
+    +0.5, -0.5,  0.0,
+
+    -0.5, -0.5,  0.0,
+    +0.5, -0.5,  0.0,
+    +0.5, +0.5,  0.0,
+  };
+
+  const GLubyte colors[] = {
+    255, 255, 255, 255,
+    255, 255, 255, 255,
+    255, 255, 255, 255,
+
+    255, 255, 255, 255,
+    255, 255, 255, 255,
+    255, 255, 255, 255,
+
+  };
+
+  glVertexPointer(2, GL_FLOAT, 0, vertices);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glColorPointer(4, GL_UNSIGNED_BYTE, 0, colors);
+  glEnableClientState(GL_COLOR_ARRAY);
+
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+}
 void drawTriangle(float x1, float y1, float x2, float y2, int red, int green, int blue, int alpha) {
   // Replace the implementation of this method to do your own custom drawing.
   const GLfloat vertices[] = {
@@ -98,8 +127,8 @@ GLuint loadTextureFromUIView(UIView* target_view) {
   UIImage* before_image = UIGraphicsGetImageFromCurrentImageContext();
   UIGraphicsEndImageContext();
 
-  UIGraphicsBeginImageContext(CGSizeMake(512, 512));
-  [before_image drawInRect:CGRectMake(0, 0, 512, 512)];
+  UIGraphicsBeginImageContext(CGSizeMake(1024, 1024));
+  [before_image drawInRect:CGRectMake(0, 0, 1024, 1024)];
   UIImage* result_image = UIGraphicsGetImageFromCurrentImageContext();
   CGImageRef image = result_image.CGImage;
   UIGraphicsEndImageContext();
