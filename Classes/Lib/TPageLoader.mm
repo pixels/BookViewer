@@ -13,7 +13,8 @@
 @implementation TPageLoader
 
 -(UIImageView*) getImageViewWithNumber:(int)page_num {
-  UIImageView* view = [[testView alloc] initWithFrame:CGRectMake(0,0,512,512) Str:[NSString stringWithFormat:@"%d", page_num]];
+  UIImageView* view = [[UIImageView alloc] initWithImage:[UIImage imageNamed:[NSString stringWithFormat:@"00%d.jpg", (page_num%8)+1]]];
+  view.frame = CGRectMake(0, 0, 300, 300);
   return view;
 }
 

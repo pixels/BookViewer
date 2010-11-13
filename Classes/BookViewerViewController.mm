@@ -49,6 +49,15 @@
 	// e.g. self.myOutlet = nil;
 }
 
+-(void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)FromInterfaceOrientation {  
+  NSLog(@"orientation!!!");
+    if(FromInterfaceOrientation == UIInterfaceOrientationPortrait){  
+        // 横向き  
+    } else {  
+        // 縦向き  
+    }  
+} 
+
 // Override to allow orientations other than the default portrait orientation.
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
   return (interfaceOrientation == UIInterfaceOrientationLandscapeRight);

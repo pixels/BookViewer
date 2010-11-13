@@ -198,7 +198,7 @@
     0.5f, 0.5f, 0.5f, 1.0f
   };
 
-  glViewport(0, 0, self.view.frame.size.width, self.view.frame.size.height);
+  glViewport(self.view.frame.origin.x, self.view.frame.origin.y, self.view.frame.size.width, self.view.frame.size.height);
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -600,7 +600,7 @@
 
   float oval[PAGE_CURL_SPLIT][3];
 
-  // 円錐の頂点から距離1の点集合を計算
+  // 円柱の頂点から距離1の点集合を計算
   float tmp_x, tmp_y, tmp_z;
   //for (int i = 0; i < PAGE_CURL_SPLIT; i++ ) {
   for (int i = 0; i < PAGE_CURL_SPLIT; i++ ) {
@@ -660,7 +660,7 @@
     now_v2_y = -1.5;
     now_v2_z = oval[i][2];
 
-    if (x_ref * y_ref < 0) {
+    if (x_ref > 0) {
       vertices[vertex_index++] = x_ref * now_v1_x;
       vertices[vertex_index++] = y_ref * now_v1_y;
       vertices[vertex_index++] = now_v1_z;
@@ -670,7 +670,7 @@
     vertices[vertex_index++] = y_ref * pre_v1_y;
     vertices[vertex_index++] = pre_v1_z;
 
-    if (x_ref * y_ref > 0) {
+    if (x_ref < 0) {
       vertices[vertex_index++] = x_ref * now_v1_x;
       vertices[vertex_index++] = y_ref * now_v1_y;
       vertices[vertex_index++] = now_v1_z;
@@ -680,11 +680,18 @@
     vertices[vertex_index++] = y_ref * pre_v2_y;
     vertices[vertex_index++] = pre_v2_z;
 
-    tex_coords[tex_index++] = 0.5 + x_ref * (now_c1_x/ 2.0 - 0.5);
-    tex_coords[tex_index++] = (1.5 - y_ref * now_c1_y) / 3.0;
+    if (x_ref > 0) {
+      tex_coords[tex_index++] = 0.5 + x_ref * (now_c1_x/ 2.0 - 0.5);
+      tex_coords[tex_index++] = (1.5 - y_ref * now_c1_y) / 3.0;
+    }
 
     tex_coords[tex_index++] = 0.5 + x_ref * (pre_c1_x / 2.0 - 0.5);
     tex_coords[tex_index++] = (1.5 - y_ref * pre_c1_y) / 3.0;
+
+    if (x_ref < 0) {
+      tex_coords[tex_index++] = 0.5 + x_ref * (now_c1_x/ 2.0 - 0.5);
+      tex_coords[tex_index++] = (1.5 - y_ref * now_c1_y) / 3.0;
+    }
 
     tex_coords[tex_index++] = 0.5 + x_ref * (pre_c2_x / 2.0 - 0.5);
     tex_coords[tex_index++] = (1.5 - y_ref * pre_c2_y) / 3.0;
@@ -698,7 +705,7 @@
 
     active_counts++;
 
-    if (x_ref < 0) {
+    if (x_ref > 0) {
       vertices[vertex_index++] = x_ref * now_v1_x;
       vertices[vertex_index++] = y_ref * now_v1_y;
       vertices[vertex_index++] = now_v1_z;
@@ -708,7 +715,7 @@
     vertices[vertex_index++] = y_ref * pre_v2_y;
     vertices[vertex_index++] = pre_v2_z;
 
-    if (x_ref > 0) {
+    if (x_ref < 0) {
       vertices[vertex_index++] = x_ref * now_v1_x;
       vertices[vertex_index++] = y_ref * now_v1_y;
       vertices[vertex_index++] = now_v1_z;
@@ -718,7 +725,7 @@
     vertices[vertex_index++] = y_ref * now_v2_y;
     vertices[vertex_index++] = now_v2_z;
 
-    if (x_ref < 0) {
+    if (x_ref > 0) {
       tex_coords[tex_index++] = 0.5 + x_ref * (now_c1_x/ 2.0 - 0.5);
       tex_coords[tex_index++] = (1.5 - y_ref * now_c1_y) / 3.0;
     }
@@ -726,7 +733,7 @@
     tex_coords[tex_index++] = 0.5 + x_ref * (pre_c2_x / 2.0 - 0.5);
     tex_coords[tex_index++] = (1.5 - y_ref * pre_c2_y) / 3.0;
 
-    if (x_ref > 0) {
+    if (x_ref < 0) {
       tex_coords[tex_index++] = 0.5 + x_ref * (now_c1_x/ 2.0 - 0.5);
       tex_coords[tex_index++] = (1.5 - y_ref * now_c1_y) / 3.0;
     }
@@ -758,7 +765,7 @@
 
   }
 
-  if (x_ref < 0) {
+  if (x_ref > 0) {
     vertices[vertex_index++] = x_ref * pre_v1_x;
     vertices[vertex_index++] = y_ref * pre_v1_y;
     vertices[vertex_index++] = pre_v1_z;
@@ -768,7 +775,7 @@
   vertices[vertex_index++] = y_ref * pre_v2_y;
   vertices[vertex_index++] = pre_v2_z;
 
-  if (x_ref > 0) {
+  if (x_ref < 0) {
     vertices[vertex_index++] = x_ref * pre_v1_x;
     vertices[vertex_index++] = y_ref * pre_v1_y;
     vertices[vertex_index++] = pre_v1_z;
@@ -778,7 +785,7 @@
   vertices[vertex_index++] = y_ref * 1.5;
   vertices[vertex_index++] = pre_v1_z;
 
-  if (x_ref < 0) {
+  if (x_ref > 0) {
     tex_coords[tex_index++] = 0.5 + x_ref * (pre_c1_x / 2.0 - 0.5);
     tex_coords[tex_index++] = (1.5 - y_ref * pre_c1_y) / 3.0;
   }
@@ -786,7 +793,7 @@
   tex_coords[tex_index++] = 0.5 + x_ref * (pre_c2_x / 2.0 - 0.5);
   tex_coords[tex_index++] = (1.5 - y_ref * pre_c2_y) / 3.0;
 
-  if (x_ref > 0) {
+  if (x_ref < 0) {
     tex_coords[tex_index++] = 0.5 + x_ref * (pre_c1_x / 2.0 - 0.5);
     tex_coords[tex_index++] = (1.5 - y_ref * pre_c1_y) / 3.0;
   }
