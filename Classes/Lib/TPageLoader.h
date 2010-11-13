@@ -14,5 +14,6 @@
 }
 
 -(UIImageView*) getImageViewWithNumber:(int)page_num;
+-(BOOL) isExist:(int)num;
 
 @end

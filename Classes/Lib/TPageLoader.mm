@@ -18,4 +18,8 @@
   return view;
 }
 
+-(BOOL) isExist:(int)num {
+  return (num >= 0);
+}
+
 @end

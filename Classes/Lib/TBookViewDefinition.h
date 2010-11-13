@@ -13,4 +13,9 @@
 #define WINDOW_W 1024
 #define WINDOW_H 768
 
+#define Y_LEN 1.5
+#define X_LEN 2.0
+
 #define PAGE_CURL_SPLIT 40
+
+#define PAGE_CURL_STEP 0.15f

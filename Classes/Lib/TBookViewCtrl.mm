@@ -37,6 +37,9 @@
 
 // Implement viewDidLoad to do additional setup after loading the view, typically from a nib.
 - (void)viewDidLoad {
+  state = NONE;
+  curl_direction = CURLING_RIGHT_TO_LEFT;
+
   page_num = 0;
 
   direction = DIRECTION_RIGHT;
@@ -48,15 +51,20 @@
   self.view.backgroundColor = [UIColor colorWithWhite:0.0f alpha:0.0f];
   self.view.frame = CGRectMake(0, 0, WINDOW_W, WINDOW_H);
 
-  loader = [[TPageLoader alloc] init];
+  holder = [[TPageHolder alloc] init];
   pre_vector = CGPointMake(0, 0);
   vector = CGPointMake(0, 0);
   base_point = CGPointMake(0, 0);
   pivot_point = CGPointMake(0, 0);
 
-  for (int i = 0; i < 6; i++) {
-    main_pages[i] = [loader getImageViewWithNumber:i];
+  for (int i = 0; i < 3; i++) {
+    main_pages[i] = [holder getRightPage:2-i];
     main_pages[i].frame = CGRectMake(0, 0, self.view.frame.size.width / 2, self.view.frame.size.height);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    main_pages[3 + i] = [holder getLeftPage:i];
+    main_pages[3 + i].frame = CGRectMake(0, 0, self.view.frame.size.width / 2, self.view.frame.size.height);
   }
 
   left_view = [[UIView alloc] initWithFrame:CGRectMake(0, 0, self.view.frame.size.width / 2, self.view.frame.size.height)];
@@ -72,64 +80,114 @@
   [self loadTextures];
 
   [self drawFrame];
+
+  timer = [NSTimer scheduledTimerWithTimeInterval:1.0 / 60 target:self selector:@selector(nextFrame) userInfo:nil repeats:YES];
+}
+
+- (void) nextFrame {
+  if ( state == CONTINUE_PAGE_CURLING ) {
+    [self continueCurling];
+  } else if (state == REVERSE_PAGE_CURLING ) {
+    [self reverseCurling];
+  }
+
+  [self drawFrame];
+
+  if (pre_vector.x * vector.x < 0.0 ) {
+    // [self loadTextures];
+    if ( pre_vector.x < 0.0 ) {
+      [self returnRightPage];
+      [self changeLeftPage];
+    } else {
+      [self returnLeftPage];
+      [self changeRightPage];
+    }
+  } else if ( pre_vector.x == 0.0 ) {
+    if ( vector.x < 0.0 ) {
+      [self changeRightPage];
+    } else if (vector.x > 0.0) {
+      [self changeLeftPage];
+    }
+  }
+
+  pre_vector = vector;
+}
+
+- (void) loadTextureInBackground:(NSNumber *)num {
+  int number = [num intValue];
+  [self loadTexture:number];
+  NSLog(@"loaded texture : %d", number);
 }
 
 -(void) setMainPages {
-  for (int i = 0; i < 6; i ++) {
+  for (int i = 0; i < 6; i++) {
     [main_pages[i] removeFromSuperview];
   }
-  if ( direction == DIRECTION_RIGHT ) {
-      [left_view addSubview:main_pages[2]];
-      [right_view addSubview:main_pages[3]];
-  } else {
-      [right_view addSubview:main_pages[2]];
-      [left_view addSubview:main_pages[3]];
-  }
+  [left_view addSubview:main_pages[2]];
+  [right_view addSubview:main_pages[3]];
 }
 
 -(void) changeRightPage {
-  if ( direction == DIRECTION_RIGHT ) {
-    [main_pages[3] removeFromSuperview];
-    [right_view addSubview:main_pages[5]];
-  } else {
-    [main_pages[2] removeFromSuperview];
-    [right_view addSubview:main_pages[0]];
-  }
+  NSLog(@"change right page");
+  [right_view addSubview:main_pages[5]];
+  [main_pages[3] removeFromSuperview];
 }
 
 - (void) returnRightPage {
-  if ( direction == DIRECTION_RIGHT ) {
-    [main_pages[5] removeFromSuperview];
-    [right_view addSubview:main_pages[3]];
-  } else {
-    [main_pages[0] removeFromSuperview];
-    [right_view addSubview:main_pages[2]];
-  }
+  NSLog(@"return right page");
+  [right_view addSubview:main_pages[3]];
+  [main_pages[5] removeFromSuperview];
 }
 
 -(void) changeLeftPage {
-  if ( direction == DIRECTION_RIGHT ) {
-    [main_pages[2] removeFromSuperview];
-    [left_view addSubview:main_pages[0]];
-  } else {
-    [main_pages[3] removeFromSuperview];
-    [left_view addSubview:main_pages[5]];
-  }
+  [left_view addSubview:main_pages[0]];
+  [main_pages[2] removeFromSuperview];
 }
 
 - (void) returnLeftPage {
-  if ( direction == DIRECTION_RIGHT ) {
-    [main_pages[0] removeFromSuperview];
-    [left_view addSubview:main_pages[2]];
-  } else {
-    [main_pages[5] removeFromSuperview];
-    [left_view addSubview:main_pages[3]];
-  }
+  [main_pages[0] removeFromSuperview];
+  [left_view addSubview:main_pages[2]];
 }
 
 
 -(void) loadTextures {
   for ( int i = 0; i < 6; i++ ) texture[i] = loadTextureFromUIView(main_pages[i]);
+}
+
+-(void) loadTexture:(int)num {
+  texture[num] = loadTextureFromUIView(main_pages[num]);
+}
+
+-(void) goToRight {
+  [holder goToRight];
+  for ( int i = 0; i < 2; i++ ) {
+    glDeleteTextures(1, &texture[5-i]);
+  }
+  for ( int i = 0; i < 4; i++ ) {
+    main_pages[5-i] = main_pages[5-i-2];
+    texture[5-i] = texture[5-i-2];
+  }
+  for ( int i = 0; i < 2; i++ ) {
+    main_pages[1-i] = [holder getLeftPage:i+1];
+    [self performSelectorInBackground:@selector(loadTextureInBackground:) withObject:[NSNumber numberWithInteger:i]];
+  }
+  [self setMainPages];
+}
+
+-(void) goToLeft {
+  [holder goToLeft];
+  for ( int i = 0; i < 2; i++ ) {
+    glDeleteTextures(1, &texture[i]);
+  }
+  for ( int i = 0; i < 4; i++ ) {
+    main_pages[i] = main_pages[i+2];
+    texture[i] = texture[i+2];
+  }
+  for ( int i = 0; i < 2; i++ ) {
+    main_pages[4+i] = [holder getRightPage:i+1];
+    [self performSelectorInBackground:@selector(loadTextureInBackground:) withObject:[NSNumber numberWithInteger:4+i]];
+  }
+  [self setMainPages];
 }
 
 -(void) initPageCurlView {
@@ -214,7 +272,7 @@
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrthof(-2.0f, 2.0f, -1.5f, 1.5f, -10.0f, 10.0f);
+  glOrthof(-X_LEN, X_LEN, -Y_LEN, Y_LEN, -10.0f, 10.0f);
   //glFrustumf(-2.0f, 2.0f, -1.5f, 1.5f, -10.0f, 10.0f);
 
   glMatrixMode(GL_MODELVIEW);
@@ -222,9 +280,7 @@
   glPushMatrix();
 
   glLoadIdentity();
-  // int rad = (int)(vector.x * 50);
-  // glRotatef(rad, 0, 1, 0);
-  // [self drawBox];
+
   [self drawPage];
   glPopMatrix();
 
@@ -237,6 +293,96 @@
     NSLog(@"success to present");
 #endif
   }
+}
+
+-(void) reverseCurling {
+  int x_ref, y_ref;
+
+  if ( vector.x < 0.0 ) {
+    x_ref = -1.0;
+    vector.x *= -1.0;
+  } else {
+    x_ref = 1.0;
+  }
+  if ( vector.y < 0.0 ) {
+    y_ref = -1.0;
+    vector.y *= -1.0;
+  } else {
+    y_ref = 1.0;
+  }
+
+  float x = -X_LEN + vector.x;
+  float y = -Y_LEN + vector.y;
+  float a = (y + Y_LEN) / (-pow(x / X_LEN, 2) + 1.0);
+  vector.x -= PAGE_CURL_STEP;
+  x -= PAGE_CURL_STEP;
+
+  if ( vector.x < 0.0 ) {
+    vector.x = 0.0;
+    vector.y = -Y_LEN;
+    x = -X_LEN + vector.x;
+    y = -Y_LEN + vector.y;
+
+    state = NONE;
+
+    if (curl_direction == CURLING_RIGHT_TO_RIGHT ) {
+      [self returnRightPage];
+    } else if (curl_direction == CURLING_LEFT_TO_LEFT ) {
+      [self returnLeftPage];
+    }
+  } else {
+    y = a * (-pow(x / X_LEN, 2) + 1) - Y_LEN;
+    vector.y = y + Y_LEN;
+  }
+
+  vector.x *= x_ref;
+  vector.y *= y_ref;
+}
+
+-(void) continueCurling {
+  int x_ref, y_ref;
+
+  if ( vector.x < 0.0 ) {
+    x_ref = -1.0;
+    vector.x *= -1.0;
+  } else {
+    x_ref = 1.0;
+  }
+  if ( vector.y < 0.0 ) {
+    y_ref = -1.0;
+    vector.y *= -1.0;
+  } else {
+    y_ref = 1.0;
+  }
+
+  float x = -X_LEN + vector.x;
+  float y = -Y_LEN + vector.y;
+  float a = (y + Y_LEN) / (-pow(x / X_LEN, 2) + 1.0);
+  vector.x += PAGE_CURL_STEP;
+  x += PAGE_CURL_STEP;
+
+  if ( vector.x > 2 * X_LEN ) {
+    vector.x = 2 * X_LEN;
+    vector.y = -Y_LEN;
+    x = -X_LEN + vector.x;
+    y = -Y_LEN + vector.y;
+
+    if (curl_direction == CURLING_RIGHT_TO_LEFT ) {
+      [self goToLeft];
+    } else if (curl_direction == CURLING_LEFT_TO_RIGHT ) {
+      [self goToRight];
+    }
+
+    state = NONE;
+    vector.x = 0.0;
+    vector.y = 0.0;
+  } else {
+    y = a * (-pow(x / X_LEN, 2) + 1) - Y_LEN;
+    vector.y = y + Y_LEN;
+  }
+
+  vector.x *= x_ref;
+  vector.y *= y_ref;
 }
 
 -(void) drawBox {
@@ -322,6 +468,8 @@
 
 }
 - (void) drawPage {
+  [self setPrimaryPoints];
+
   if (vector.x > 0) {
     [self drawCurlPage];
   } else if (vector.x < 0){
@@ -1643,30 +1791,40 @@ GLfloat * getFlippedVertices(GLfloat* vertices, int n) {
 }
 
 - (void) curlPageWithVector:(CGPoint)point {
-  pre_vector = vector;
-  vector = CGPointMake(2.0f * point.x / (WINDOW_W / 2), -1.5 * point.y / (WINDOW_H / 2));
+  state = MANUAL_PAGE_CURLING;
 
-  [self setPrimaryPoints];
-  [self drawFrame];
+  BOOL flag;
+  if (((point.x > 0) && [holder hasLeft:1]) ||
+     ((point.x < 0) && [holder hasRight:1])) {
+    flag = true;
+  } else {
+    flag = false;
+  }
 
-  if ( vector.x == 0.0 ) {
-    if ( pre_vector.x < 0.0 ) [self returnRightPage];
-    else [self returnLeftPage];
-  } else if (pre_vector.x * vector.x < 0 ) {
-    // [self loadTextures];
-    if ( pre_vector.x < 0 ) {
-      [self returnRightPage];
-      [self changeLeftPage];
+  if (flag) {
+    vector = CGPointMake(2.0f * point.x / (self.view.frame.size.width / 2), -1.5 * point.y / (self.view.frame.size.height / 2));
+  } else {
+    vector = CGPointMake(0.0, 0.0);
+  }
+}
+
+- (void) curlPageContinue {
+  if ( fabs(vector.x) > X_LEN ) {
+    state = CONTINUE_PAGE_CURLING;
+
+    if (vector.x < 0.0) {
+      curl_direction = CURLING_RIGHT_TO_LEFT;
     } else {
-      [self returnLeftPage];
-      [self changeRightPage];
-    }
-  } else if ( pre_vector.x == 0.0 ) {
-    if ( vector.x < 0.0 ) {
-      [self changeRightPage];
+      curl_direction = CURLING_LEFT_TO_RIGHT;
+    };
+  } else {
+    state = REVERSE_PAGE_CURLING;
+
+    if (vector.x < 0.0) {
+      curl_direction = CURLING_RIGHT_TO_RIGHT;
     } else {
-      [self changeLeftPage];
-    }
+      curl_direction = CURLING_LEFT_TO_LEFT;
+    };
   }
 }
 
@@ -1694,7 +1852,7 @@ return (interfaceOrientation == UIInterfaceOrientationPortrait);
 
 - (void)dealloc {
   [super dealloc];
-  [loader dealloc];
+  [holder dealloc];
   [page_curl_view dealloc];
 }
 
@@ -1718,14 +1876,17 @@ return (interfaceOrientation == UIInterfaceOrientationPortrait);
 - (void)view:(UIView*)view touchesEnded:(NSSet*)touches withEvent:(UIEvent*)event {
   for (UITouch *touch in touches) {
     endPoint = [touch locationInView:self.view];
-    [self curlPageWithVector:CGPointMake(0.0, 0.0)];
+    if ( vecDistance(startPoint, endPoint) < 5) {
+    } else {
+      [self curlPageContinue];
+    }
     break;
   }
 }
 
 - (void)view:(UIView*)view touchesCancelled:(NSSet*)touches withEvent:(UIEvent*)event {
   for (UITouch *touch in touches) {
-    [self curlPageWithVector:CGPointMake(0.0, 0.0)];
+    [self curlPageContinue];
     break;
   }
 }

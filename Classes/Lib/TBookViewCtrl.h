@@ -9,12 +9,22 @@
 #import <UIKit/UIKit.h>
 #import "TPageCurlView.h"
 #import "TBookViewDefinition.h"
-#import "TPageLoader.h"
+#import "TPageHolder.h"
 #import "MathUtil.h"
 
 enum {
-  DIRECTION_LEFT,
-  DIRECTION_RIGHT
+  NONE,
+  AUTO_PAGE_CURLING,
+  CONTINUE_PAGE_CURLING,
+  REVERSE_PAGE_CURLING,
+  MANUAL_PAGE_CURLING
+};
+
+enum {
+  CURLING_RIGHT_TO_LEFT,
+  CURLING_RIGHT_TO_RIGHT,
+  CURLING_LEFT_TO_LEFT,
+  CURLING_LEFT_TO_RIGHT
 };
 
 @interface TBookViewCtrl : UIViewController {
@@ -23,7 +33,10 @@ enum {
   UIView* left_view;
   UIView* right_view;
 
-  TPageLoader* loader;
+  TPageHolder* holder;
+
+  NSTimer* timer;
+
   BOOL animating;
   BOOL displayLinkSupported;
   int animationFrameInterval;
@@ -31,6 +44,8 @@ enum {
   int page_num;
 
   int direction;
+  int state;
+  int curl_direction;
   CGPoint startPoint, endPoint;
 
   GLuint texture[6];
