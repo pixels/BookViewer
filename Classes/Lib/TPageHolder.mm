@@ -15,7 +15,7 @@
   if ( self = [super init] ) {
     max_page_num = 20;
     page_num = 2;
-    direction = DIRECTION_LEFT;
+    direction = DIRECTION_RIGHT;
 
     loader = [[TPageLoader alloc] init];
     page_dict = [[NSMutableDictionary alloc] init];
@@ -33,7 +33,6 @@
       image_view = [loader getImageViewWithNumber:i];
       if ( image_view ) {
 	[page_dict setObject:image_view forKey:number];
-	[image_view release];
       }
     }
   }
@@ -61,22 +60,28 @@
 
 -(UIImageView*) getRightPage:(int)num {
    NSNumber *number;
+   UIImageView* image_view;
   if ( direction == DIRECTION_LEFT ) {
     number = [NSNumber numberWithInteger:page_num - num];
   } else {
+    NSLog(@"get right page : %d", page_num + num + 1);
     number = [NSNumber numberWithInteger:page_num + num + 1];
   }
-  return [page_dict objectForKey:number];
+  image_view = [page_dict objectForKey:number];
+  return image_view;
 }
 
 -(UIImageView*) getLeftPage:(int)num {
    NSNumber *number;
+   UIImageView* image_view;
   if ( direction == DIRECTION_LEFT ) {
     number = [NSNumber numberWithInteger:page_num + num + 1];
   } else {
+    NSLog(@"get left page : %d", page_num + num + 1);
     number = [NSNumber numberWithInteger:page_num - num];
   }
-  return [page_dict objectForKey:number];
+  image_view = [page_dict objectForKey:number];
+  return image_view;
 }
 
 -(BOOL) hasLeft:(int)num {
@@ -98,6 +103,7 @@
 - (void) arrangeDictionary {
   NSNumber* num;
   UIImageView* image_view;
+
   for ( int i = 0; i < max_page_num; i++ ) {
     num = [NSNumber numberWithInteger:i];
     if ( i < page_num - 2 || i > page_num + 3 ) {
@@ -107,7 +113,6 @@
 	image_view = [loader getImageViewWithNumber:i];
 	if ( image_view ) {
 	  [page_dict setObject:image_view forKey:num];
-	  [image_view release];
 	}
       }
     }

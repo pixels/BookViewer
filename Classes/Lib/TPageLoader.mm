@@ -13,13 +13,13 @@
 @implementation TPageLoader
 
 -(UIImageView*) getImageViewWithNumber:(int)page_num {
+		    NSLog(@"load page : %d", (page_num%8)+1);
   UIImageView* view = [[UIImageView alloc] initWithImage:[UIImage imageNamed:[NSString stringWithFormat:@"00%d.jpg", (page_num%8)+1]]];
-  view.frame = CGRectMake(0, 0, 300, 300);
   return view;
 }
 
 -(BOOL) isExist:(int)num {
-  return (num >= 0);
+  return (num >= 0) && (num < 20);
 }
 
 @end

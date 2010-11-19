@@ -24,5 +24,8 @@ enum {
 
 -(BOOL) hasLeft:(int)num;
 -(BOOL) hasRight:(int)num;
+-(UIImageView*) getRightPage:(int)num;
+-(UIImageView*) getLeftPage:(int)num;
+- (void) arrangeDictionary;
 
 @end

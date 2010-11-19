@@ -156,6 +156,8 @@ GLuint loadTextureFromUIView(UIView* target_view) {
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
   free(imageData);
 
+  NSLog(@"end to load texture");
+
   return texture;
 }
 

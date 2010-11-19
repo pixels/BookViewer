@@ -37,6 +37,9 @@ enum {
 
   NSTimer* timer;
 
+  int frame;
+  int touched_frame;
+
   BOOL animating;
   BOOL displayLinkSupported;
   int animationFrameInterval;
@@ -48,7 +51,7 @@ enum {
   int curl_direction;
   CGPoint startPoint, endPoint;
 
-  GLuint texture[6];
+  GLuint* texture;
   GLuint tex;
 
   CGPoint pre_vector;
@@ -58,6 +61,7 @@ enum {
 }
 
 @property (readonly, nonatomic, getter=isAnimating) BOOL animating;
+@property GLuint* texture;
 
 -(void)loadTextures;
 -(void) setMainPages;
@@ -73,7 +77,10 @@ enum {
 -(void) drawCurlingPageWithXline:(float)x1 X2:(float)x2 xRef:(int)x_ref yRef:(int)y_ref;
 -(void) drawLackedPageWithXLine:(float)x xRef:(int)x_ref yRef:(int)y_ref;
 -(void) drawLackedPageWithVector:(CGPoint)v A:(float)a B:(float)b xRef:(int)x_ref yRef:(int)y_ref;
-- (void) curlPageWithVector:(CGPoint)point;
+-(void) curlPageWithVector:(CGPoint)point;
+-(void) loadTextureInBackground:(NSNumber *)num;
+-(void) loadTexture:(int)num;
+-(void) loadAndSetTexture:(NSArray*)array;
 
 GLfloat* getFlippedVertices(GLfloat* vertices, int n);
 

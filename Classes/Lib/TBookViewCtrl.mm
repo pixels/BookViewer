@@ -16,7 +16,7 @@
 
 @implementation TBookViewCtrl
 
-@synthesize animating, context;
+@synthesize animating, context, texture;
 
 // The designated initializer.  Override if you create the controller programmatically and want to perform customization that is not appropriate for viewDidLoad.
 /*
@@ -37,6 +37,8 @@
 
 // Implement viewDidLoad to do additional setup after loading the view, typically from a nib.
 - (void)viewDidLoad {
+  frame = 0;
+
   state = NONE;
   curl_direction = CURLING_RIGHT_TO_LEFT;
 
@@ -51,6 +53,7 @@
   self.view.backgroundColor = [UIColor colorWithWhite:0.0f alpha:0.0f];
   self.view.frame = CGRectMake(0, 0, WINDOW_W, WINDOW_H);
 
+  texture = new GLuint[6];
   holder = [[TPageHolder alloc] init];
   pre_vector = CGPointMake(0, 0);
   vector = CGPointMake(0, 0);
@@ -58,12 +61,12 @@
   pivot_point = CGPointMake(0, 0);
 
   for (int i = 0; i < 3; i++) {
-    main_pages[i] = [holder getRightPage:2-i];
+    main_pages[i] = [holder getLeftPage:2-i];
     main_pages[i].frame = CGRectMake(0, 0, self.view.frame.size.width / 2, self.view.frame.size.height);
   }
 
   for (int i = 0; i < 3; i++) {
-    main_pages[3 + i] = [holder getLeftPage:i];
+    main_pages[3 + i] = [holder getRightPage:i];
     main_pages[3 + i].frame = CGRectMake(0, 0, self.view.frame.size.width / 2, self.view.frame.size.height);
   }
 
@@ -85,6 +88,8 @@
 }
 
 - (void) nextFrame {
+  frame++;
+
   if ( state == CONTINUE_PAGE_CURLING ) {
     [self continueCurling];
   } else if (state == REVERSE_PAGE_CURLING ) {
@@ -92,6 +97,8 @@
   }
 
   [self drawFrame];
+
+  [self judgeToChangePage];
 
   if (pre_vector.x * vector.x < 0.0 ) {
     // [self loadTextures];
@@ -113,15 +120,38 @@
   pre_vector = vector;
 }
 
+- (void) loadAllTextureInBackground {
+  NSAutoreleasePool* pool;
+  pool = [[NSAutoreleasePool alloc] init];
+
+  for (int i = 0; i < 6; i++) {
+    [self loadTexture:i];
+  }
+
+  [pool release];
+  [NSThread exit];
+
+}
 - (void) loadTextureInBackground:(NSNumber *)num {
+  NSAutoreleasePool* pool;
+  pool = [[NSAutoreleasePool alloc] init];
+
   int number = [num intValue];
+  NSLog(@"background load of texture : %d", number);
   [self loadTexture:number];
-  NSLog(@"loaded texture : %d", number);
+  [num release];
+  NSLog(@"end backgfound load of texture : %d", number);
+
+  [pool release];
+  [NSThread exit];
 }
 
 -(void) setMainPages {
-  for (int i = 0; i < 6; i++) {
-    [main_pages[i] removeFromSuperview];
+  for (UIView* next_view in [left_view subviews]) {
+    [next_view removeFromSuperview];
+  }
+  for (UIView* next_view in [right_view subviews]) {
+    [next_view removeFromSuperview];
   }
   [left_view addSubview:main_pages[2]];
   [right_view addSubview:main_pages[3]];
@@ -129,39 +159,55 @@
 
 -(void) changeRightPage {
   NSLog(@"change right page");
+  for (UIView* next_view in [right_view subviews]) {
+    [next_view removeFromSuperview];
+  }
   [right_view addSubview:main_pages[5]];
-  [main_pages[3] removeFromSuperview];
 }
 
 - (void) returnRightPage {
   NSLog(@"return right page");
+  for (UIView* next_view in [right_view subviews]) {
+    [next_view removeFromSuperview];
+  }
   [right_view addSubview:main_pages[3]];
-  [main_pages[5] removeFromSuperview];
 }
 
 -(void) changeLeftPage {
+  for (UIView* next_view in [left_view subviews]) {
+    [next_view removeFromSuperview];
+  }
   [left_view addSubview:main_pages[0]];
-  [main_pages[2] removeFromSuperview];
 }
 
 - (void) returnLeftPage {
-  [main_pages[0] removeFromSuperview];
+  for (UIView* next_view in [left_view subviews]) {
+    [next_view removeFromSuperview];
+  }
   [left_view addSubview:main_pages[2]];
 }
 
 
 -(void) loadTextures {
   for ( int i = 0; i < 6; i++ ) texture[i] = loadTextureFromUIView(main_pages[i]);
+  //[self performSelectorInBackground:@selector(loadAllTextureInBackground) withObject:nil];
 }
 
 -(void) loadTexture:(int)num {
+  NSLog(@"load tex : %d", num);
   texture[num] = loadTextureFromUIView(main_pages[num]);
+  NSLog(@"end load tex : %d", num);
 }
 
--(void) goToRight {
-  [holder goToRight];
+-(void) loadAndSetTexture:(NSArray*)array {
+}
+
+-(void) goToLeft {
+  NSLog(@"go to left");
+  [holder goToLeft];
   for ( int i = 0; i < 2; i++ ) {
     glDeleteTextures(1, &texture[5-i]);
+    [main_pages[5-i] release];
   }
   for ( int i = 0; i < 4; i++ ) {
     main_pages[5-i] = main_pages[5-i-2];
@@ -169,15 +215,19 @@
   }
   for ( int i = 0; i < 2; i++ ) {
     main_pages[1-i] = [holder getLeftPage:i+1];
-    [self performSelectorInBackground:@selector(loadTextureInBackground:) withObject:[NSNumber numberWithInteger:i]];
+    main_pages[1-i].frame = CGRectMake(0, 0, self.view.frame.size.width / 2, self.view.frame.size.height);
+    //[self performSelectorInBackground:@selector(loadTextureInBackground:) withObject:[NSNumber numberWithInteger:1-i]];
+    texture[1-i] = loadTextureFromUIView(main_pages[1-i]);
   }
   [self setMainPages];
 }
 
--(void) goToLeft {
-  [holder goToLeft];
+-(void) goToRight {
+  NSLog(@"go to right");
+  [holder goToRight];
   for ( int i = 0; i < 2; i++ ) {
     glDeleteTextures(1, &texture[i]);
+    [main_pages[i] release];
   }
   for ( int i = 0; i < 4; i++ ) {
     main_pages[i] = main_pages[i+2];
@@ -185,7 +235,9 @@
   }
   for ( int i = 0; i < 2; i++ ) {
     main_pages[4+i] = [holder getRightPage:i+1];
-    [self performSelectorInBackground:@selector(loadTextureInBackground:) withObject:[NSNumber numberWithInteger:4+i]];
+    main_pages[4+i].frame = CGRectMake(0, 0, self.view.frame.size.width / 2, self.view.frame.size.height);
+    //[self performSelectorInBackground:@selector(loadTextureInBackground:) withObject:[NSNumber numberWithInteger:4+i]];
+    texture[4+i] = loadTextureFromUIView(main_pages[4+i]);
   }
   [self setMainPages];
 }
@@ -241,11 +293,11 @@
   };
 
   GLfloat lightColor[] = {
-    1.0f, 0.0f, 0.0f, 1.0f
+    1.0f, 1.0f, 1.0f, 1.0f
   };
 
   GLfloat lightAmbient[] = {
-    0.5f, 0.5f, 0.5f, 1.0f
+    1.0f, 1.0f, 1.0f, 1.0f
   };
 
   GLfloat diffuse[] = {
@@ -261,14 +313,14 @@
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // ライトを当ててみる
-  //glEnable(GL_LIGHTING);
+  glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
   glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
-  glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, lightDirection);
+  // glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, lightDirection);
   glLightfv(GL_LIGHT0, GL_DIFFUSE, lightColor);
   glLightfv(GL_LIGHT0, GL_AMBIENT, lightAmbient);
-  glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
-  glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
+  // glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+  // glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
@@ -320,16 +372,9 @@
   if ( vector.x < 0.0 ) {
     vector.x = 0.0;
     vector.y = -Y_LEN;
+
     x = -X_LEN + vector.x;
     y = -Y_LEN + vector.y;
-
-    state = NONE;
-
-    if (curl_direction == CURLING_RIGHT_TO_RIGHT ) {
-      [self returnRightPage];
-    } else if (curl_direction == CURLING_LEFT_TO_LEFT ) {
-      [self returnLeftPage];
-    }
   } else {
     y = a * (-pow(x / X_LEN, 2) + 1) - Y_LEN;
     vector.y = y + Y_LEN;
@@ -338,6 +383,49 @@
   vector.x *= x_ref;
   vector.y *= y_ref;
 }
+
+-(void) judgeToChangePage {
+  int x_ref, y_ref;
+
+  if ( vector.x < 0.0 ) {
+    x_ref = -1.0;
+    vector.x *= -1.0;
+  } else {
+    x_ref = 1.0;
+  }
+  if ( vector.y < 0.0 ) {
+    y_ref = -1.0;
+    vector.y *= -1.0;
+  } else {
+    y_ref = 1.0;
+  }
+
+  if ( vector.x == 2 * X_LEN ) {
+    if (curl_direction == CURLING_RIGHT_TO_LEFT ) {
+      [self goToLeft];
+    } else if (curl_direction == CURLING_LEFT_TO_RIGHT ) {
+      [self goToRight];
+    }
+
+    state = NONE;
+    vector.x = 0.0;
+    vector.y = 0.0;
+  } else if ( vector.x == 0.0 ) {
+    if (curl_direction == CURLING_RIGHT_TO_RIGHT ) {
+      [self returnLeftPage];
+    } else if (curl_direction == CURLING_LEFT_TO_LEFT ) {
+      [self returnRightPage];
+    }
+
+    state = NONE;
+    vector.x = 0.0;
+    vector.y = 0.0;
+  } else {
+    vector.x *= x_ref;
+    vector.y *= y_ref;
+  }
+}
+
 
 -(void) continueCurling {
   int x_ref, y_ref;
@@ -363,18 +451,7 @@
 
   if ( vector.x > 2 * X_LEN ) {
     vector.x = 2 * X_LEN;
-    vector.y = -Y_LEN;
-    x = -X_LEN + vector.x;
-    y = -Y_LEN + vector.y;
-
-    if (curl_direction == CURLING_RIGHT_TO_LEFT ) {
-      [self goToLeft];
-    } else if (curl_direction == CURLING_LEFT_TO_RIGHT ) {
-      [self goToRight];
-    }
-
-    state = NONE;
-    vector.x = 0.0;
+    y = a * (-pow(x / X_LEN, 2) + 1) - Y_LEN;
     vector.y = 0.0;
   } else {
     y = a * (-pow(x / X_LEN, 2) + 1) - Y_LEN;
@@ -759,7 +836,7 @@
   }
 
   GLfloat vertices[9 * 4 * PAGE_CURL_SPLIT];
-  GLfloat* norms;
+  GLfloat norms[9 * 4 * PAGE_CURL_SPLIT];
   GLubyte colors[6 * 4 * PAGE_CURL_SPLIT];
   GLfloat tex_coords[6 * 4 * PAGE_CURL_SPLIT];
 
@@ -828,6 +905,16 @@
     vertices[vertex_index++] = y_ref * pre_v2_y;
     vertices[vertex_index++] = pre_v2_z;
 
+    for (int j = 0; j < 3; j++) {
+      norms[vertex_index - 9 + (3 * j)] = 0.0;
+      norms[vertex_index - 9 + (3 * j) + 1] = sin(M_PI * ((i+1) / (float)PAGE_CURL_SPLIT));
+      norms[vertex_index - 9 + (3 * j) + 2] = cos(M_PI * ((i+1) / (float)PAGE_CURL_SPLIT));
+      if (i > PAGE_CURL_SPLIT / 2) {
+	norms[vertex_index - 9 + (3 * j) + 1] *= -1;
+	norms[vertex_index - 9 + (3 * j) + 2] *= -1;
+      }
+    }
+
     if (x_ref > 0) {
       tex_coords[tex_index++] = 0.5 + x_ref * (now_c1_x/ 2.0 - 0.5);
       tex_coords[tex_index++] = (1.5 - y_ref * now_c1_y) / 3.0;
@@ -872,6 +959,16 @@
     vertices[vertex_index++] = x_ref * now_v2_x;
     vertices[vertex_index++] = y_ref * now_v2_y;
     vertices[vertex_index++] = now_v2_z;
+
+    for (int j = 0; j < 3; j++) {
+      norms[vertex_index - 9 + (3 * j)] = 0.0;
+      norms[vertex_index - 9 + (3 * j) + 1] = sin(M_PI * ((i+1) / (float)PAGE_CURL_SPLIT));
+      norms[vertex_index - 9 + (3 * j) + 2] = cos(M_PI * ((i+1) / (float)PAGE_CURL_SPLIT));
+      if (i > PAGE_CURL_SPLIT / 2) {
+	norms[vertex_index - 9 + (3 * j) + 1] *= -1;
+	norms[vertex_index - 9 + (3 * j) + 2] *= -1;
+      }
+    }
 
     if (x_ref > 0) {
       tex_coords[tex_index++] = 0.5 + x_ref * (now_c1_x/ 2.0 - 0.5);
@@ -933,6 +1030,12 @@
   vertices[vertex_index++] = y_ref * 1.5;
   vertices[vertex_index++] = pre_v1_z;
 
+  for (int j = 0; j < 3; j++) {
+    norms[vertex_index - 9 + (3 * j)] = 0.0;
+    norms[vertex_index - 9 + (3 * j) + 1] = 0.0;
+    norms[vertex_index - 9 + (3 * j) + 2] = 1.0;
+  }
+
   if (x_ref > 0) {
     tex_coords[tex_index++] = 0.5 + x_ref * (pre_c1_x / 2.0 - 0.5);
     tex_coords[tex_index++] = (1.5 - y_ref * pre_c1_y) / 3.0;
@@ -978,6 +1081,12 @@
   vertices[vertex_index++] = y_ref * 1.5;
   vertices[vertex_index++] = pre_v1_z;
 
+  for (int j = 0; j < 3; j++) {
+    norms[vertex_index - 9 + (3 * j)] = 0.0;
+    norms[vertex_index - 9 + (3 * j) + 1] = 0.0;
+    norms[vertex_index - 9 + (3 * j) + 2] = 1.0;
+  }
+
   if (x_ref < 0) {
     tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
     tex_coords[tex_index++] = 0.5 + y_ref * 0.5;
@@ -1003,7 +1112,7 @@
 
   active_counts++;
 
-  norms = (GLfloat*)[self getNormVectorsFromVertices:vertices Num:3 * active_counts];
+  // norms = (GLfloat*)[self getNormVectorsFromVertices:vertices Num:3 * active_counts];
 
   int tex_page;
   glEnable(GL_CULL_FACE); 
@@ -1055,6 +1164,7 @@
 
   glDisable(GL_TEXTURE_2D); // テクスチャ機能を有効にする
 }
+
 -(void) drawCurlingPageWithVector:(CGPoint)v start:(float)start_rad delta:(float)delta_rad startTan:(float)start_tan endTan:(float)end_tan xRef:(int)x_ref yRef:(int)y_ref {
   // 円錐の底面(高さrとした場合の)を求める
   float r = 1;
@@ -1113,7 +1223,7 @@
   // GLfloat texCoords[6 * 2 * BOMB_COUNT];
   //
   GLfloat vertices[9 * 4 * PAGE_CURL_SPLIT];
-  GLfloat* norms;
+  GLfloat norms[9 * 4 * PAGE_CURL_SPLIT];
   GLubyte colors[6 * 4 * PAGE_CURL_SPLIT];
   GLfloat tex_coords[6 * 4 * PAGE_CURL_SPLIT];
 
@@ -1201,6 +1311,16 @@
     vertices[vertex_index++] = y_ref * pre_v2_y;
     vertices[vertex_index++] = pre_v2_z;
 
+    for (int j = 0; j < 3; j++) {
+      norms[vertex_index - 9 + (3 * j)] = 0.0;
+      norms[vertex_index - 9 + (3 * j) + 1] = sin(M_PI * ((i+1) / (float)PAGE_CURL_SPLIT));
+      norms[vertex_index - 9 + (3 * j) + 2] = cos(M_PI * ((i+1) / (float)PAGE_CURL_SPLIT));
+      if (i > PAGE_CURL_SPLIT / 2) {
+	norms[vertex_index - 9 + (3 * j) + 1] *= -1;
+	norms[vertex_index - 9 + (3 * j) + 2] *= -1;
+      }
+    }
+
     if (x_ref * y_ref < 0) {
       tex_coords[tex_index++] = 0.5 + x_ref * (((now_c1_x + v.x)/ 2.0) - 0.5);
       tex_coords[tex_index++] = (1.5 - y_ref * (now_c1_y + v.y)) / 3.0;
@@ -1246,6 +1366,16 @@
       vertices[vertex_index++] = x_ref * now_v2_x;
       vertices[vertex_index++] = y_ref * now_v2_y;
       vertices[vertex_index++] = now_v2_z;
+
+    for (int j = 0; j < 3; j++) {
+      norms[vertex_index - 9 + (3 * j)] = 0.0;
+      norms[vertex_index - 9 + (3 * j) + 1] = sin(M_PI * ((i+1) / (float)PAGE_CURL_SPLIT));
+      norms[vertex_index - 9 + (3 * j) + 2] = cos(M_PI * ((i+1) / (float)PAGE_CURL_SPLIT));
+      if (i > PAGE_CURL_SPLIT / 2) {
+	norms[vertex_index - 9 + (3 * j) + 1] *= -1;
+	norms[vertex_index - 9 + (3 * j) + 2] *= -1;
+      }
+    }
 
       if (x_ref * y_ref < 0) {
 	tex_coords[tex_index++] = 0.5 + x_ref * ((now_c1_x + v.x)/ 2.0 - 0.5);
@@ -1323,6 +1453,12 @@
   vertices[vertex_index++] = y_ref*(((1 - t) * pre_v1_y + t * pre_v2_y) - v_1.y);
   vertices[vertex_index++] = pre_v1_z;
 
+  for (int j = 0; j < 3; j++) {
+    norms[vertex_index - 9 + (3 * j)] = 0.0;
+    norms[vertex_index - 9 + (3 * j) + 1] = 0.0;
+    norms[vertex_index - 9 + (3 * j) + 2] = 1.0;
+  }
+
   if (x_ref * y_ref < 0) {
     tex_coords[tex_index++] = 0.5 + x_ref * ((pre_c1_x + v.x) / 2.0 - 0.5);
     tex_coords[tex_index++] = (1.5 - y_ref * (pre_c1_y + v.y)) / 3.0;
@@ -1373,6 +1509,12 @@
     vertices[vertex_index++] = y_ref * (new_vec.y + pre_v2_y);
     vertices[vertex_index++] = pre_v2_z;
 
+  for (int j = 0; j < 3; j++) {
+    norms[vertex_index - 9 + (3 * j)] = 0.0;
+    norms[vertex_index - 9 + (3 * j) + 1] = 0.0;
+    norms[vertex_index - 9 + (3 * j) + 2] = 1.0;
+  }
+
     if (x_ref * y_ref < 0) {
       tex_coords[tex_index++] = 0.5 + x_ref * 0.5;
       tex_coords[tex_index++] = 0.5 - y_ref * 0.5;
@@ -1399,7 +1541,7 @@
     active_counts++;
   }
 
-  norms = (GLfloat*)[self getNormVectorsFromVertices:vertices Num:3 * active_counts];
+  // norms = (GLfloat*)[self getNormVectorsFromVertices:vertices Num:3 * active_counts];
 
   int tex_page;
   if ( x_ref > 0 ) {
@@ -1499,7 +1641,6 @@ GLfloat * getFlippedVertices(GLfloat* vertices, int n) {
   return vertices;
 }
 
-
 -(void) drawLackedPageWithXLine:(float)x xRef:(int)x_ref yRef:(int)y_ref {
   GLfloat vertices[] = {
     0.0f, 1.5f, 0,
@@ -1536,6 +1677,7 @@ GLfloat * getFlippedVertices(GLfloat* vertices, int n) {
 
   [self drawLackedPageWidthThreeTriangels:vertices Norms:norms Xref:x_ref];
 }
+
 -(void) drawLackedPageWithVector:(CGPoint)v A:(float)a B:(float)b xRef:(int)x_ref yRef:(int)y_ref {
   int cross_type;
 
@@ -1608,7 +1750,17 @@ GLfloat * getFlippedVertices(GLfloat* vertices, int n) {
       }
     }
 
-    GLfloat* norms = (GLfloat*)[self getNormVectorsFromVertices:vertices Num:2];
+    // GLfloat* norms = (GLfloat*)[self getNormVectorsFromVertices:vertices Num:2];
+    GLfloat norms[] = {
+      0.0, 0.0, 1.0,
+      0.0, 0.0, 1.0,
+      0.0, 0.0, 1.0,
+
+      0.0, 0.0, 1.0,
+      0.0, 0.0, 1.0,
+      0.0, 0.0, 1.0,
+    };
+
 
     [self drawLackedPageWidthTwoTriangels:vertices Norms:norms Xref:x_ref];
   }
@@ -1808,24 +1960,46 @@ GLfloat * getFlippedVertices(GLfloat* vertices, int n) {
   }
 }
 
-- (void) curlPageContinue {
+- (void) curlPageAutomaticaly {
   if ( fabs(vector.x) > X_LEN ) {
     state = CONTINUE_PAGE_CURLING;
 
     if (vector.x < 0.0) {
-      curl_direction = CURLING_RIGHT_TO_LEFT;
-    } else {
       curl_direction = CURLING_LEFT_TO_RIGHT;
+    } else {
+      curl_direction = CURLING_RIGHT_TO_LEFT;
     };
   } else {
     state = REVERSE_PAGE_CURLING;
 
     if (vector.x < 0.0) {
-      curl_direction = CURLING_RIGHT_TO_RIGHT;
-    } else {
       curl_direction = CURLING_LEFT_TO_LEFT;
+    } else {
+      curl_direction = CURLING_RIGHT_TO_RIGHT;
     };
   }
+}
+
+-(void) curlPageToRight {
+  vector.x = 0.01;
+  vector.y = 0.003;
+  [self curlPageContinue];
+}
+
+-(void) curlPageToLeft {
+  vector.x = -0.01;
+  vector.y = 0.003;
+  [self curlPageContinue];
+}
+
+- (void) curlPageContinue {
+  if (vector.x < 0.0 && [holder hasRight:1]) {
+    state = CONTINUE_PAGE_CURLING;
+    curl_direction = CURLING_LEFT_TO_RIGHT;
+  } else if ([holder hasLeft:1]) {
+    state = CONTINUE_PAGE_CURLING;
+    curl_direction = CURLING_RIGHT_TO_LEFT;
+  };
 }
 
 /*
@@ -1849,7 +2023,6 @@ return (interfaceOrientation == UIInterfaceOrientationPortrait);
   // e.g. self.myOutlet = nil;
 }
 
-
 - (void)dealloc {
   [super dealloc];
   [holder dealloc];
@@ -1860,6 +2033,7 @@ return (interfaceOrientation == UIInterfaceOrientationPortrait);
 
 - (void)view:(UIView*)view touchesBegan:(NSSet*)touches withEvent:(UIEvent*)event {
   for (UITouch *touch in touches) {
+    touched_frame = frame;
     startPoint = [touch locationInView:self.view];
     break;
   }
@@ -1876,9 +2050,16 @@ return (interfaceOrientation == UIInterfaceOrientationPortrait);
 - (void)view:(UIView*)view touchesEnded:(NSSet*)touches withEvent:(UIEvent*)event {
   for (UITouch *touch in touches) {
     endPoint = [touch locationInView:self.view];
-    if ( vecDistance(startPoint, endPoint) < 5) {
+    if ( vecDistance(startPoint, endPoint) < 5 ) {
+      if ( frame - touched_frame < 30 ) {
+	if ( endPoint.x < self.view.frame.size.width / 2) {
+	  [self curlPageToRight];
+	} else {
+	  [self curlPageToLeft];
+	}
+      }
     } else {
-      [self curlPageContinue];
+      [self curlPageAutomaticaly];
     }
     break;
   }
